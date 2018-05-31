@@ -1,0 +1,75 @@
+<setup>
+
+    <block title="TA-dmarc configuration page" />
+
+    <block title="Don't download mails" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: If you check this box you need to either place the zip/gz files in the "&lt;&lt;APPDIR&gt;&gt;/logs/attach_raw/" directory or the xml files in the "&lt;&lt;APPDIR&gt;&gt;/logs/dmarc_xml/" directory manualy &lt;/i&gt;</text>
+        <input field="skip_mail_download">
+            <label>Don't download mails</label>
+            <type>bool</type>
+        </input>
+    </block>
+
+    <block title="Mail server setup" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <input field="mailserver_host">
+            <label>FQDN or IP of the mailserver</label>
+            <type>text</type>
+        </input>
+    
+        <input field="mailserver_port">
+            <label>Port to connect</label>
+            <type>text</type>
+        </input>
+        
+        <input field="mailserver_protocol">
+            <label>Protocol to use (POP3/POP3S/IMAP/IMAPS)</label>
+            <type>text</type>
+        </input>
+        
+        <input field="mailserver_mailboxfolder">
+            <label>Mailbox folder where the mail is stored (default is Inbox)</label>
+            <type>text</type>
+        </input>
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: This is case sensitive!.&lt;/i&gt;</text>
+    </block>
+     
+    <block title="Credentials" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: If you leave the username and/or the password field empty the empty fields will &lt;b&gt;not&lt;/b&gt; be saved!&lt;/i&gt;</text>
+        <input field="mailserver_user">
+            <label>Username</label>
+            <type>text</type>
+        </input>
+
+        <input field="mailserver_pwd">
+            <label>Password</label>
+            <type>password</type>
+        </input>
+    </block>    
+    
+    <block title="Output options" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <text>&lt;b&gt;Set the output format for the dmarc log&lt;/b&gt;</text>
+        <input field="output">
+            <label>Output format</label>
+            <type>text</type>
+        </input>
+        <text>&lt;i&gt;&lt;b&gt;Possible options&lt;/b&gt;: kv OR json&lt;/i&gt;</text>
+        
+        <text>&lt;b&gt;Resolve IP's that are in the XML's to there PTR's&lt;/b&gt;</text>
+        <input field="resolve_ips">
+            <label> Resolve IP's</label>
+            <type>text</type>
+        </input>
+        <text>&lt;i&gt;&lt;b&gt;Possible options&lt;/b&gt;: 1/true OR 0/false &lt;/i&gt;</text>
+    </block>
+    
+    <block title="Set script log level" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <text>Set the log level for all the scripts in the app</text>
+        <input field="log_level">
+            <label>Scripts Log Level</label>
+            <type>text</type>
+        </input>
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: 10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL, other values will be rounded down to the nearest valid option.&lt;/i&gt;</text>
+    </block>
+ 
+</setup>
+
