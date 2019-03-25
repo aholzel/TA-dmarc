@@ -1,4 +1,8 @@
 # TA-dmarc
+
+## WARNING for SA-dmarc users
+If you also use the SA-dmarc found on my Github, please note that if you use version 3.5.1 or higher of the TA-dmarc you need to use version 3.6.1 or higher of the SA-dmarc app
+
 ## Description
 Splunk of for the processing and ingestion of DMARC RUA reports. The app can download email attachments from a mail server via POP3/POP3s/IMAP/IMAPs, you can choose the mailbox folder where the mails are stored. If no connection to the mail server is possible you can manually place the attachments in a directory within the app and they will also be processed.
 

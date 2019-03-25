@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Copyright 2017-2018 Arnold Holzel
+Copyright 2017-2019 Arnold Holzel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,7 @@ SOFTWARE.
 #                                       Included an max file size check to prevent the opening of zip bombs.
 # 2018-03-29    2.9         Arnold      Added support for .gzip files also created some additional checks on the file mime type to make sure everything
 #                                       is done to process a file before it is ignored.
+# 2019-03-25    3.0         Arnold      Added the sessionKey parameter for this script and to pass is to the dmarc-parcer script.
 #
 ##################################################################
  
@@ -75,6 +76,7 @@ from datetime import datetime, timedelta
 import re, struct
 import inspect
 import time
+import argparse
 
 import splunklib.client as client
 
@@ -201,9 +203,18 @@ def migrate_to_new_conf(default_content, local_content, appname):
 ###################################################   
 
 if __name__ == '__main__':
+    options = argparse.ArgumentParser(epilog='Example: %(prog)s --sessionKey <SPLUNK SESSIONKEY>')
+    options.add_argument("--sessionKey", help="The splunk session key to use")
+    args = options.parse_args()
+
+    if args.sessionKey is None:
+        sessionKey = sys.stdin.readline().strip()
+    elif len(args.sessionKey) != 0:
+        sessionKey = args.sessionKey
+    elif len(args.sessionKey) == 0:
+        sessionKey = sys.stdin.readline().strip()
+
     script_dir = os.path.dirname(os.path.abspath(__file__))                                     # The directory of this script
-    
-    sessionKey = sys.stdin.readline().strip()
     
     splunk_info = si.Splunk_Info(sessionKey)
     splunk_paths = splunk_info.give_splunk_paths(script_dir)
@@ -530,9 +541,9 @@ if __name__ == '__main__':
         dmarc_parser_script = os.path.normpath(script_dir + os.sep + "dmarc-parser.py")
         
         if resolve not in [None, ""]:
-            dmarc_parser_commands = [splunk_command, "cmd", "python", dmarc_parser_script, "--file", os.path.normpath(xml_dir + os.sep + xmlfile), "--logfile", str(parser_log_file), "--output", str(output), str(resolve)]
+            dmarc_parser_commands = [splunk_command, "cmd", "python", dmarc_parser_script, "--file", os.path.normpath(xml_dir + os.sep + xmlfile), "--logfile", str(parser_log_file), "--output", str(output), str(resolve), "--sessionKey", sessionKey ]
         else:
-            dmarc_parser_commands = [splunk_command, "cmd", "python", dmarc_parser_script, "--file", os.path.normpath(xml_dir + os.sep + xmlfile), "--logfile", str(parser_log_file)]
+            dmarc_parser_commands = [splunk_command, "cmd", "python", dmarc_parser_script, "--file", os.path.normpath(xml_dir + os.sep + xmlfile), "--logfile", str(parser_log_file), "--sessionKey", sessionKey]
             
         script_logger.debug("Passing the following options to the parser script: " + str(dmarc_parser_commands))
         run_dmarc_parser = subprocess.Popen(dmarc_parser_commands)

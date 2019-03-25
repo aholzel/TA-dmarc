@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Copyright 2017-2018 Arnold Holzel
+Copyright 2017-2019 Arnold Holzel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@ SOFTWARE.
 # Description   : Script to parse the DMARC RUA XML files into key=value pairs so it can be
 #                 ingested into Splunk. This script pulls all the possible information out of
 #                 the XML, it is compatible with RUA version 1.0
-#                 Converting an XML file that is +/- 1 million rows takes about 12 sec.
+
 #
 # Version history
 # Date          Version     Author      Description
@@ -51,10 +51,15 @@ SOFTWARE.
 #                                       if within that time there is no response from the nslookup subprocess the process will be killed 
 #                                       and an NXDOMAIN will be assumed.
 # 2018-04-01    1.8         Arnold      Made it possible to set the output to JSON.
+# 2019-03-25    2.0         Arnold      Rewritten the 'process_dmarc_xml' function entirely, to make it more clear what is done and how.
+#                                       Now using xml.etree instead of lxml.etree module xml.etree is less picky about the encoding, 
+#                                       so less manipulation is needed before processing. This reduced the script with almost 100 lines.
+#                                 NOTE: If you also use the SA-dmarc app please upgrade that app to 3.6.1 or higher for the correct 
+#                                       field extracts.
 #
 ##################################################################
 
-from lxml import etree
+import xml.etree.ElementTree as ET
 import argparse, json
 import re, os, sys
 from datetime import datetime
@@ -69,255 +74,163 @@ def nested_dict(n, type):
     else:
         return defaultdict(lambda: nested_dict(n-1, type))
 
-def process_dmarc_xml(xml_file, output="kv", resolve=0, resolve_timeout=2):
-    # Go through the xml_file and look voor the <report_metadata> and <policy_published> elements
-    metatree = etree.iterparse(xml_file, events=('end',), tag=('report_metadata', 'policy_published'))
-    
-    if output == "kv":
-        # clean out the report_defaultdata variable just in case...
-        report_defaultdata = ""
-    elif output == "json":
-        report_defaultdata = nested_dict(6, dict)
+def del_none(d):
+    for key, value in list(d.items()):
+        if value is None:
+            del d[key]
+        elif isinstance(value, dict):
+            del_none(value)
+    return d  
 
-    for event, metainfo in metatree:
-        # loop through the data
-        if event == 'end' and metainfo.tag == 'report_metadata':
-            # this is the <report_metadata> element, so get all the info that is in there and if 
-            # not available set a default value
-            org_name = metainfo.findtext('org_name', default="not_set")
-            email = metainfo.findtext('email', default="not_set")
-            extra_contact_info = metainfo.findtext('extra_contact_info', default="not_set")
-            report_id = metainfo.findtext('report_id', default="not_set")
-            date_range_begin = metainfo.findtext('date_range/begin', default="not_set")
-            date_range_end = metainfo.findtext('date_range/end', default="not_set")
-      
-            # Set some variables for potentially looping through the <error> element.
-            error_data = ""
-            error_count = 1
-      
-            for metainfo_error in metainfo.findall('error'):
-                # The <report_metadata> element can contain multiple or non <error> elements this
-                # for loop loops through them and collects the info.
-                # The <error> element doesn't have any subelements so just get the text between the 
-                # start and end of the element.
-                error = metainfo_error.text
-        
-                error_data += "error_" + str(error_count) + "=\"" + str(error) + "\", "
-                error_count += 1
-            
-            if output == "kv":
-                # Put everything together, put quotes around all the values even if they are in theory numbers only, 
-                # cast everything to a string to prevent errors if something is not a string..
-                report_defaultdata += "org_name=\"" + str(org_name) + "\", email=\"" + str(email) \
-                + "\", extra_contact_info=\"" + str(extra_contact_info) + "\", report_id=\"" + str(report_id) \
-                + "\", date_range_begin=\"" + str(date_range_begin) + "\", date_range_end=\"" + str(date_range_end) \
-                + "\", " + str(error_data)
-            elif output == "json":
-                report_defaultdata["feedback"]["report_metadata"]["org_name"] = str(org_name)
-                report_defaultdata["feedback"]["report_metadata"]["email"] = str(email)
-                report_defaultdata["feedback"]["report_metadata"]["extra_contact_info"] = str(extra_contact_info)
-                report_defaultdata["feedback"]["report_metadata"]["report_id"] = str(report_id)
-                report_defaultdata["feedback"]["report_metadata"]["date_range"]["begin"] = str(date_range_begin)
-                report_defaultdata["feedback"]["report_metadata"]["date_range"]["end"] = str(date_range_end)
-  
-        if event == "end" and metainfo.tag == "policy_published":
-            # this is the <policy_published> element, so get all the info that is in there and if 
-            # not available set a default value based on the DMARC RFC
-            domain = metainfo.findtext('domain', default="not_set")
-            adkim = metainfo.findtext('adkim', default="r")
-            aspf = metainfo.findtext('aspf', default="r")
-            p = metainfo.findtext('p', default="none")
-            sp = metainfo.findtext('sp', default="none")
-            pct = metainfo.findtext('pct', default=100)
-            fo = metainfo.findtext('fo', default=0)
-
-            if output == "kv":
-                # put everything together with the report_metadata info. Again put quotes around everthing 
-                # that is not numbers only, cast everything to a string to prevent errors just in case..
-                report_defaultdata += "published_domain=\"" + str(domain) + "\", published_adkim=\"" \
-                + str(adkim) + "\", published_aspf=\"" + str(aspf) + "\", published_p=\"" + str(p) \
-                + "\", published_sp=\"" + str(sp) + "\", published_pct=\"" + str(pct) + "\", fo=\"" \
-                + str(fo) + "\""
-            elif output == "json":
-                report_defaultdata["feedback"]["policy_published"]["domain"] = str(domain).lower()
-                report_defaultdata["feedback"]["policy_published"]["adkim"] = str(adkim).lower()
-                report_defaultdata["feedback"]["policy_published"]["aspf"] = str(aspf).lower()
-                report_defaultdata["feedback"]["policy_published"]["p"] = str(p).lower()
-                report_defaultdata["feedback"]["policy_published"]["sp"] = str(sp).lower()
-                report_defaultdata["feedback"]["policy_published"]["pct"] = str(pct).lower()
-                report_defaultdata["feedback"]["policy_published"]["fo"] = str(fo).lower()
-                
-        # Clear the info from memory.    
-        metainfo.clear()
-
-    # Go through the xml_file and look voor the <record> elements (this element can occur a lot of times)
-    recordtree = etree.iterparse(str(xml_file), events=('end',), tag='record')
-  
-    for event, recordinfo in recordtree:
-        if output == "kv":
-            # make sure the report_recorddata variable is empty
-            report_recorddata = ""
-        elif output == "json":
-            report_recorddata = report_defaultdata
-    
-        # Get all the available options and set a default value if not present
-        source_ip = recordinfo.findtext('row/source_ip', default="not_set")
-        count = recordinfo.findtext('row/count', default=0)
-        disposition = recordinfo.findtext('row/policy_evaluated/disposition', default="none")
-        dkim = recordinfo.findtext('row/policy_evaluated/dkim', default="not_set")
-        spf = recordinfo.findtext('row/policy_evaluated/spf', default="not_set")
-        header_from = recordinfo.findtext('identifiers/header_from', default="not_set")
-        envelope_to = recordinfo.findtext('identifiers/envelope_to', default="not_set")
-        envelope_from = recordinfo.findtext('identifiers/envelope_from', default="not_set")
-        
-        if resolve == 1:
-            # Resolve ip adresses to hostnames, this might take some time but this way we have the
-            # hostname associated with the ip at the time of the report.
-            # The socket.gethostbyip option might take very long to resolve nxdomain's because of the 
-            # 30 sec. timeout. To get around this we use a subprocess to do an nslookup and use a timeout
-            # to kill the process if it takes to long
-            import subprocess, shlex
-            from threading import Timer
-
-            # define two method's to run the nslookup and kill it if it runs longer than x sec
-            def kill_process(process, timeout):
-                timeout["value"] = True
-                process.kill()
-
-            def run(cmd, timeout_sec):
-                process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                timeout = {"value": False}
-                timer = Timer(timeout_sec, kill_process, [process, timeout])
-                timer.start()
-                stdout, stderr = process.communicate()
-                timer.cancel()
-                # return the process returncode, whether or not we run into the set timeout, stdout, stderr
-                return process.returncode, timeout["value"], stdout.decode("utf-8"), stderr.decode("utf-8")
-
-            output = run("nslookup -q=a " + str(source_ip), resolve_timeout)
-            
-            if str(output[0]) == "0":
-                # The below regex searches for the PTR and can handle both Windows and Linux returns
-                search = re.search("(?:n|N)ame\s*(?:\=|\:)\s*([^\s]*)", output[2])
-
-                if search:
-                    # Check if we have a result
-                    hostname = search.group(1)
-                    hostname = hostname.lower()
-                    hostname = hostname.rstrip('.')
-                else:
-                    hostname = "NXDOMAIN"
-            else:
-                hostname = "NXDOMAIN"
+def get_kv_dict(d, out=dict()):
+    for k, v in d.items():
+        if isinstance(v, dict):
+            get_kv_dict(v)
         else:
-            hostname = "-"
-        
-        if output == "kv":
-            # put all the fields that can only occur one time in the <record> element
-            report_recorddata += "source_ip=\"" + str(source_ip) + ", source_hostname=\"" + str(hostname) \
-            + "\"" + "\", count=\"" + str(count) + "\", evaluated_disposition=\"" + str(disposition) \
-            + "\", evaluated_dkim=\"" + str(dkim) + "\", evaluated_spf=\"" + str(spf) +  "\", header_from=\"" + str(header_from) \
-            + "\", envelope_from=\"" + str(envelope_from) + "\", envelope_to=\"" + str(envelope_to) + "\""
-        
-            # make everything lowercase 
-            report_recorddata = report_recorddata.lower()
-        elif output == "json":
-            report_recorddata["feedback"]["record"]["row"]["source_ip"] = str(source_ip).lower()
-            report_recorddata["feedback"]["record"]["row"]["source_hostname"] = str(hostname).lower()
-            report_recorddata["feedback"]["record"]["row"]["count"] = str(count).lower()
-            report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["disposition"] = str(disposition).lower()
-            report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["dkim"] = str(dkim).lower()
-            report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["spf"] = str(spf).lower()
-            report_recorddata["feedback"]["record"]["identifiers"]["header_from"] = str(header_from).lower()
-            report_recorddata["feedback"]["record"]["identifiers"]["envelope_to"] = str(envelope_to).lower()
-            report_recorddata["feedback"]["record"]["identifiers"]["envelope_from"] = str(envelope_from).lower()
+            out[k] = v.strip()  
             
-        # set some variables before going to 3 elements that can occur more than one time in the 
-        # <record> element
-        dkim_count = spf_count = reason_count = 1
-        dkim_data = spf_data = reason_data = ""
+    return out
     
-        for reason_results in recordinfo.findall('row/policy_evaluated/reason'):
-            # The first element that can occur more than once but at the same time can also not occur at
-            # all is the <reason> element within the <policy_evaluated> element
-            reason_type = reason_results.findtext('type', default="not_set")
-            reason_comment = reason_results.findtext('comment', default="not_set")
-      
-            if output == "kv":
-                # put all the found reasons together in the reason_data variable, use the reason_count 
-                # variable to later match the reason_type with the reason_comment
-                reason_data += "evaluated_reason_type_" + str(reason_count) + "=\"" + str(reason_type) \
-                + "\", evaluated_reason_comment_" + str(reason_count) + "=\"" + str(reason_comment) + "\", "
-            elif output == "json":
-                report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["reason"]["type"] = str(reason_type)
-                report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["reason"]["comment"] = str(reason_comment)
-                
-            reason_count += 1
-    
-        for dkim_result in recordinfo.findall('auth_results/dkim'):
-            # The second element that can occur multiple times or not at all is the dkim element
-            # Check for all possible elements and set default values if the don't exist
-            domain = dkim_result.findtext('domain', default="not_set")
-            result = dkim_result.findtext('result', default="not_set")
-            selector = dkim_result.findtext('selector', default="not_set")
-            human_result = dkim_result.findtext('human_result', default="not_set")
-            
-            if output == "kv":
-                dkim_data += "dkim_domain_" + str(dkim_count) + "=\"" + str(domain) + "\", dkim_result_" \
-                + str(dkim_count) + "=\"" + str(result) + "\", dkim_selector_"+ str(dkim_count) + "=\"" \
-                + str(selector) + "\", dkim_human_result_" + str(dkim_count) + "=\"" + str(human_result) + "\", "
-            elif output == "json":
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["dkim"]["domain"] = str(domain)
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["dkim"]["result"] = str(result)
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["dkim"]["selector"] = str(selector)
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["dkim"]["human_result"] = str(human_result)
-                
-            dkim_count += 1
+report_defaultdata = nested_dict(6, dict)
 
-        for spf_result in recordinfo.findall('auth_results/spf'):
-            # The third and last element that can occur multiple times is the spf element
-            domain = spf_result.findtext('domain', default="not_set")
-            result = spf_result.findtext('result', default="not_set")
-            scope = spf_result.findtext('scope', default="not_set")
+def process_dmarc_xml(xml_file, output="json", resolve=0, resolve_timeout=2):
+    # open the provided xml file and read the content into a string.
+    try:
+        with open(xml_file, 'rb') as content_file:
+            script_logger.debug("Reading the XML file content.")
+            xml = content_file.read()
+    except EnvironmentError:
+        script_logger.exception("Cannot open file '" + str(dmarc_rua_xml) + "'\" traceback=")
+        exit(0)
         
-            if output == "kv":
-                spf_data += "spf_domain_" + str(spf_count) + "=\"" + str(domain) + "\", spf_result_" \
-                + str(spf_count) + "=\"" + str(result) + "\", spf_scope_"+ str(spf_count) + "=\"" + str(scope) + "\", "
-            elif output == "json":
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["spf"]["domain"] =  str(domain)
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["spf"]["result"] = str(result)
-                report_recorddata["feedback"]["record"]["row"]["auth_results"]["spf"]["scope"] = str(scope)
+    # find the root element of the xml, this should be the feedback element
+    try:
+        root = ET.fromstring(xml)
+
+        # loop trough the xml and find al the possible items that the xml can have. And store everything
+        # in a multidimensional dict. if an item is not found a None value will be set, this will later on be removed
+        # this dict will later on either be converted into a json or in key=value pairs.
+        
+        # find the "feedback" item of the xml, and all the items directly below that, that can only occur once
+        for feedback in root.iter('feedback'):
+            report_defaultdata["feedback"]["version"] = feedback.findtext('version',None)
+            report_defaultdata["feedback"]["file_name"] = str(os.path.basename(os.path.normpath(xml_file)))
+            
+            # find the report_metadata info
+            report_defaultdata["feedback"]["report_metadata"]["org_name"] = feedback.findtext('report_metadata/org_name',None)
+            report_defaultdata["feedback"]["report_metadata"]["email"] = feedback.findtext('report_metadata/email',None)
+            report_defaultdata["feedback"]["report_metadata"]["extra_contact_info"] = feedback.findtext('report_metadata/extra_contact_info',None)
+            report_defaultdata["feedback"]["report_metadata"]["report_id"] = feedback.findtext('report_metadata/report_id',None)
+            
+            # find the date_range info
+            report_defaultdata["feedback"]["report_metadata"]["date_range"]["begin"] = feedback.findtext('report_metadata/date_range/begin',None)
+            report_defaultdata["feedback"]["report_metadata"]["date_range"]["end"] = feedback.findtext('report_metadata/date_range/end',None)
+            
+            # find the policy_published info
+            report_defaultdata["feedback"]["policy_published"]["domain"] = feedback.findtext('policy_published/domain',None)
+            report_defaultdata["feedback"]["policy_published"]["adkim"] = feedback.findtext('policy_published/adkim',None)
+            report_defaultdata["feedback"]["policy_published"]["aspf"] = feedback.findtext('policy_published/aspf',None)
+            report_defaultdata["feedback"]["policy_published"]["p"] = feedback.findtext('policy_published/p',None)
+            report_defaultdata["feedback"]["policy_published"]["sp"] = feedback.findtext('policy_published/sp',None)
+            report_defaultdata["feedback"]["policy_published"]["pct"] = feedback.findtext('policy_published/pct',None)
+
+            # find the record info, this tag can occure multiple times, so loop through all of them
+            for record in feedback.iter('record'):
+                report_recorddata = report_defaultdata
+
+                # find the identifiers per record.
+                for identifiers in record.findall('identifiers'):
+                    report_recorddata["feedback"]["record"]["identifiers"]["header_from"] = identifiers.findtext('header_from',None)
+                    report_recorddata["feedback"]["record"]["identifiers"]["envelope_from"] = identifiers.findtext('envelope_from',None)
+                    report_recorddata["feedback"]["record"]["identifiers"]["envelope_to"] = identifiers.findtext('envelope_to',None)
+
+                for dkim in record.findall('./auth_results/dkim'):
+                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["domain"] = dkim.findtext('domain',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["selector"] = dkim.findtext('selector',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["result"] = dkim.findtext('result',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["result"] = dkim.findtext('human_result',None)
+
+                for spf in record.findall('./auth_results/spf'):
+                    report_recorddata["feedback"]["record"]["auth_results"]["spf"]["domain"] = spf.findtext('domain',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["spf"]["scope"] = spf.findtext('scope',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["spf"]["result"] = spf.findtext('result',None)
                 
-            spf_count += 1
-         
-        if output == "kv": 
-            # put all the data together in the report_recorddata variable
-            # make sure all the dkim and spf data is in all lower case for the splunk stats query's
-            report_recorddata += ", " + reason_data + dkim_data.lower() + spf_data.lower()    
-    
-            # print the result for this <record> element
-            result_logger.info(default_data + ", " + report_recorddata)
-        elif output == "json":
-            jsondata = json.dumps(report_recorddata)
-            result_logger.info(jsondata)
-                  
-        # clear the processed <record> element from memory
-        recordinfo.clear()
+                # a record can have multiple rows, loop through all of them.
+                for row in record.iter('row'):
+                    
+                    source_ip = row.findtext('source_ip',None)
+                    
+                    if resolve == 1:
+                        # Resolve ip adresses to hostnames, this might take some time but this way we have the
+                        # hostname associated with the ip at the time of the report.
+                        # The socket.gethostbyip option might take very long to resolve nxdomain's because of the 
+                        # 30 sec. timeout. To get around this we use a subprocess to do an nslookup and use a timeout
+                        # to kill the process if it takes to long
+                        import subprocess, shlex
+                        from threading import Timer
+
+                        # define two method's to run the nslookup and kill it if it runs longer than x sec
+                        def kill_process(process, timeout):
+                            timeout["value"] = True
+                            process.kill()
+
+                        def run(cmd, timeout_sec):
+                            process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                            timeout = {"value": False}
+                            timer = Timer(timeout_sec, kill_process, [process, timeout])
+                            timer.start()
+                            stdout, stderr = process.communicate()
+                            timer.cancel()
+                            # return the process returncode, whether or not we run into the set timeout, stdout, stderr
+                            return process.returncode, timeout["value"], stdout.decode("utf-8"), stderr.decode("utf-8")
+
+                        cli_output = run("nslookup -q=a " + str(source_ip), resolve_timeout)
+
+                        if str(cli_output[0]) == "0":
+                            # The below regex searches for the PTR and can handle both Windows and Linux returns
+                            search = re.search("(?:n|N)ame\s*(?:\=|\:)\s*([^\s]*)", cli_output[2])
+                            
+                            if search:
+                                # Check if we have a result
+                                hostname = search.group(1)
+                                hostname = hostname.lower()
+                                hostname = hostname.rstrip('.')
+                            else:
+                                hostname = "NXDOMAIN"
+                        else:
+                            hostname = "NXDOMAIN"
+                    else:
+                        hostname = "-"
+                        
+                    report_recorddata["feedback"]["record"]["row"]["source_ip"] = str(source_ip)
+                    report_recorddata["feedback"]["record"]["row"]["source_hostname"] = str(hostname).lower()
+                    report_recorddata["feedback"]["record"]["row"]["count"] = row.findtext('count',None)
+                    report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["disposition"] = row.findtext('policy_evaluated/disposition',None)
+                    report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["dkim"] = row.findtext('policy_evaluated/dkim',None)
+                    report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["spf"] = row.findtext('policy_evaluated/spf',None)
+                    
+                # remove the empty values from the dict
+                report_recorddata = del_none(report_recorddata)
+
+                if output == 'json':
+                    # create a json from the dict
+                    jsondata = json.dumps(report_recorddata)
+                    result_logger.info(jsondata)
+                elif output == 'kv':
+                    # create a 1 dimensional dict from with the keys and values from the multidimensional dict. 
+                    kvdata = get_kv_dict(report_recorddata)
+                    kv = ''
+                    for k,v in kvdata.iteritems():
+                        kv = kv + k + '="' + v + '", '
+                        
+                    kv = kv.strip(' ,')
+                    result_logger.info(kv)
+    except Exception:
+        script_logger.exception('A exception occured with file \'' + str(xml_file) +'\', traceback=')
+        exit(0)
    
 if __name__ == "__main__":
     logger = c_logger.Logger()
-    
-    sessionKey = sys.stdin.readline().strip()
-    splunk_info = si.Splunk_Info(sessionKey)
-    
-    # Set all the needed directory's based on the directory this script is in.
-    script_dir = os.path.dirname(os.path.abspath(__file__))                     # The directory of this script
-    splunk_paths = splunk_info.give_splunk_paths(script_dir)
-    app_root_dir = splunk_paths['app_root_dir']                                 # The app root directory
-    log_root_dir = os.path.normpath(app_root_dir + os.sep + "logs")             # The root directory for the logs
-    app_log_dir = os.path.normpath(log_root_dir + os.sep + "dmarc_splunk")      # The directory to store the output for Splunk
-    
-    log_level = splunk_info.get_config(str(splunk_paths['app_name'].lower()) + ".conf", 'main', 'log_level')
     
     # Get the arguments from the commandline input.
     options = argparse.ArgumentParser(epilog="Example: %(prog)s --file dmarc-xml-file --resolve --logfile outfile.log")
@@ -325,8 +238,28 @@ if __name__ == "__main__":
     options.add_argument("--resolve", action="store_true")
     options.add_argument("--logfile", help="the log file to write to")
     options.add_argument("--output", help="the output of the log: kv or json (default)", default="json")
+    options.add_argument("--sessionKey", help="the Splunk sessionKey to use")
     args = options.parse_args()
   
+    # Splunk sessionKey info
+    if args.sessionKey is None:
+        sessionKey = sys.stdin.readline().strip()
+    elif len(args.sessionKey) != 0:
+       sessionKey = args.sessionKey
+    elif len(args.sessionKey) == 0:
+        sessionKey = sys.stdin.readline().strip()
+
+    splunk_info = si.Splunk_Info(sessionKey)
+
+    # Set all the needed directory's based on the directory this script is in.
+    script_dir = os.path.dirname(os.path.abspath(__file__))                     # The directory of this script
+    splunk_paths = splunk_info.give_splunk_paths(script_dir)
+    app_root_dir = splunk_paths['app_root_dir']                                 # The app root directory
+    log_root_dir = os.path.normpath(app_root_dir + os.sep + "logs")             # The root directory for the logs
+    app_log_dir = os.path.normpath(log_root_dir + os.sep + "dmarc_splunk")      # The directory to store the output for Splunk
+
+    log_level = splunk_info.get_config(str(splunk_paths['app_name'].lower()) + ".conf", 'main', 'log_level')
+
     # Get the dmarc RUA file name
     dmarc_rua_xml = args.file
     
@@ -360,31 +293,8 @@ if __name__ == "__main__":
     else:
         new_dmarc_rua_xml = dmarc_rua_xml
 
-    try:
-        with open(dmarc_rua_xml, 'rb') as content_file:
-            script_logger.debug("Reading the XML file content.")
-            # Read the original file in a string to work with
-            xml_content = content_file.read()
-    except EnvironmentError:
-        script_logger.exception("Cannot open file '" + str(dmarc_rua_xml) + "'\" traceback=")
-        exit(0)
-    
-    try:
-        with open(new_dmarc_rua_xml, "wb") as out:
-            script_logger.debug("Removing the <xml version> tag and write everything to file '" + str(new_dmarc_rua_xml) + "'")
-            # Just in case do a decode of the string
-            valid_xmlstring = xml_content.encode('latin1','xmlcharrefreplace').decode('utf8','xmlcharrefreplace')
-            # remove the xml version info
-            pattern = re.compile (r'(\<\?xml\s+.+?\>)')
-            valid_xmlstring = pattern.sub(r' ', valid_xmlstring)
-            # write everything back to a xml file on disk
-            out.write(valid_xmlstring)
-    except EnvironmentError:
-        script_logger.exception("Cannot write file '" + str(new_dmarc_rua_xml) + "'\" traceback=")
-        exit(0)
-
     # Get all the info from the report
-    script_logger.debug("Start getting the data from the XML")
+    script_logger.debug("Start getting the data from " + str(os.path.basename(os.path.normpath(new_dmarc_rua_xml))))
     process_dmarc_xml(new_dmarc_rua_xml, output, resolve)
     
     if new_dmarc_rua_xml == dmarc_rua_xml:

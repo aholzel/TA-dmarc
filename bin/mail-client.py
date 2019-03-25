@@ -1,16 +1,24 @@
 #!/usr/bin/python
 """
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Copyright 2017-2019 Arnold Holzel
 
-    http://www.apache.org/licenses/LICENSE-2.0
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 ##################################################################
 # Author        : SMT - Arnold
@@ -54,6 +62,9 @@ limitations under the License.
 #                                       Added --sessionKey option to pass the sessionKey via the cli
 #                                       Fixed a bug that deleted non dmarc related emails in POP3(s) setup.
 # 2018-05-31    2.5         Arnold      Added .gzip files to the allowed attachements to download, because despite the RFC specs this is also used.
+# 2019-03-25    2.6         Arnold      Made a list with the allowed mail subjects because dispite the RFC there is a large variety of
+#                                       subjects used.
+#                                       Made a check to see if there is a actual sender.
 #
 ##################################################################
  
@@ -70,6 +81,8 @@ import classes.splunk_info as si
 import classes.custom_logger as c_logger
 
 delete_files_after = 7 # days after which old parser files will be deleted 
+
+allowed_mail_subjects = ["report domain", "dmarc aggregate report", "report_domain", "[dmarc report]"]
 
 #########################################
 # NO NEED TO CHANGE ANYTHING BELOW HERE #
@@ -194,14 +207,21 @@ def imap_mailbox():
         fetch_response, msg_data = connection.fetch(emailid, "(RFC822)")
         message = email.message_from_string(msg_data[0][1])
         decode_subject = email.header.decode_header(message['Subject'])[0]
-        subject = unicode(decode_subject[0])
         
-        if fetch_response == "OK" and "report domain" in subject.lower():
-            # Search for all the dmarc messages, they always contain the string "Report Domain"
+	subject = unicode(decode_subject[0])
+        
+        if fetch_response == "OK" and any(sub in subject.lower() for sub in allowed_mail_subjects):
+            # Search for all the dmarc messages, they should always contain the string "Report Domain" but I check
+            # for a variety of strings from the allowed_mail_subjects list.
             script_logger.debug("Message id: " + str(emailid) + ", Response is OK, continue")
             decode_sender = email.header.decode_header(message['From'])[0]
-            sender = unicode(decode_sender[0])
             
+            # Check to see if there is an actual sender....
+            if len(unicode(decode_sender[0])) > 0:
+                sender = unicode(decode_sender[0])
+            else:
+                sender = "unknown"
+                
             script_logger.debug("Message id: " + str(emailid) + ", Sender: " + str(sender))
 
             script_logger.debug("Message id: " + str(emailid) + ", Content main type: " + str(message.get_content_maintype()) + ", content type: " + str(message.get_content_type()))
@@ -228,7 +248,7 @@ def imap_mailbox():
                 # Give the mail the delete flag after reading and downloading attachments or if it doesn't have a zip/gzip attachement
                 typ, response = connection.store(emailid, '+FLAGS', r'(\Deleted)')
                 
-        elif "report domain" not in subject.lower():
+        elif not any(sub in subject.lower() for sub in allowed_mail_subjects):
             script_logger.info("Message id: " + str(emailid) + ", is not a DMARC message. Message subject: " + str(subject))
         else:
             script_logger.warning("Response is NOT OK, response: " + str(response))
@@ -304,13 +324,18 @@ def pop3_mailbox():
         message_subject = str(message_subject[0])
         
         # Check the subject, only process the dmarc messages, they always contain the string "Report Domain"
-        if "report domain" in message_subject.lower():
+        if any(sub in message_subject.lower() for sub in allowed_mail_subjects):
             script_logger.debug("Message id: " + str(emailid+1) + ", is a DMARC message, " + str(body))
             message = email.message_from_string("\n".join(connection.retr(emailid+1)[1]))
             
             # Get email sender
             sender = fnmatch.filter(body, "From: *")
-            sender = str(sender[0])
+            
+            # Check to see if there is an actual sender....
+            if len(sender) > 0:
+                sender = str(sender[0])
+            else:
+                sender = "unknown"
             
             script_logger.debug("Message id: " + str(emailid+1) + ", Sender: " + str(sender))
             
