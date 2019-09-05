@@ -1,0 +1,3 @@
+[submodule "bin/classes"]
+	path = bin/classes
+	url = https://github.com/aholzel/splunk_classes.git
