@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 ##################################################################
-# Author        : SMT - Arnold
+# Author        : Arnold Holzel
 # Creation date : 2017-05-25
 # Description   : Script to parse the DMARC RUA XML files into key=value pairs so it can be
 #                 ingested into Splunk. This script pulls all the possible information out of
@@ -56,6 +56,9 @@ SOFTWARE.
 #                                       so less manipulation is needed before processing. This reduced the script with almost 100 lines.
 #                                 NOTE: If you also use the SA-dmarc app please upgrade that app to 3.6.1 or higher for the correct 
 #                                       field extracts.
+# 2019-08-29    2.1         Arnold      [FIX] DKIM result was always "not_set", because that field was overwritten (set to NONE) by the
+#                                       human_result field.
+#                                       [ADD] Files that cannot be processed due to format errors are now also moved to the problem dir
 #
 ##################################################################
 
@@ -148,7 +151,7 @@ def process_dmarc_xml(xml_file, output="json", resolve=0, resolve_timeout=2):
                     report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["domain"] = dkim.findtext('domain',None)
                     report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["selector"] = dkim.findtext('selector',None)
                     report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["result"] = dkim.findtext('result',None)
-                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["result"] = dkim.findtext('human_result',None)
+                    report_recorddata["feedback"]["record"]["auth_results"]["dkim"]["human_result"] = dkim.findtext('human_result',None)
 
                 for spf in record.findall('./auth_results/spf'):
                     report_recorddata["feedback"]["record"]["auth_results"]["spf"]["domain"] = spf.findtext('domain',None)
@@ -208,6 +211,8 @@ def process_dmarc_xml(xml_file, output="json", resolve=0, resolve_timeout=2):
                     report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["disposition"] = row.findtext('policy_evaluated/disposition',None)
                     report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["dkim"] = row.findtext('policy_evaluated/dkim',None)
                     report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["spf"] = row.findtext('policy_evaluated/spf',None)
+                    report_recorddata["feedback"]["record"]["row"]["policy_evaluated"]["reason"]["type"] = row.findtext('policy_evaluated/reason/type',None)
+                    
                     
                 # remove the empty values from the dict
                 report_recorddata = del_none(report_recorddata)
@@ -227,6 +232,15 @@ def process_dmarc_xml(xml_file, output="json", resolve=0, resolve_timeout=2):
                     result_logger.info(kv)
     except Exception:
         script_logger.exception('A exception occured with file \'' + str(xml_file) +'\', traceback=')
+        try:
+            problem_dir     = os.path.normpath(app_log_dir + os.sep + "problems")
+            problem_file    = os.path.basename(xml_file)
+            new_problem_file= os.path.normpath(problem_dir + os.sep + problem_file)
+            os.rename(xml_file,new_problem_file)
+            
+            script_logger.warning('The file is moved to the problem directory please review the file to fix the problem')
+        except Exception:
+            script_logger.exception('Could not move file to the problem directory, please remove the file manually')
         exit(0)
    
 if __name__ == "__main__":
@@ -252,13 +266,13 @@ if __name__ == "__main__":
     splunk_info = si.Splunk_Info(sessionKey)
 
     # Set all the needed directory's based on the directory this script is in.
-    script_dir = os.path.dirname(os.path.abspath(__file__))                     # The directory of this script
-    splunk_paths = splunk_info.give_splunk_paths(script_dir)
-    app_root_dir = splunk_paths['app_root_dir']                                 # The app root directory
-    log_root_dir = os.path.normpath(app_root_dir + os.sep + "logs")             # The root directory for the logs
-    app_log_dir = os.path.normpath(log_root_dir + os.sep + "dmarc_splunk")      # The directory to store the output for Splunk
+    script_dir      = os.path.dirname(os.path.abspath(__file__))                    # The directory of this script
+    splunk_paths    = splunk_info.give_splunk_paths(script_dir)
+    app_root_dir    = splunk_paths['app_root_dir']                                  # The app root directory
+    log_root_dir    = os.path.normpath(app_root_dir + os.sep + "logs")              # The root directory for the logs
+    app_log_dir     = os.path.normpath(log_root_dir + os.sep + "dmarc_splunk")      # The directory to store the output for Splunk
 
-    log_level = splunk_info.get_config(str(splunk_paths['app_name'].lower()) + ".conf", 'main', 'log_level')
+    log_level       = splunk_info.get_config(str(splunk_paths['app_name'].lower()) + ".conf", 'main', 'log_level')
 
     # Get the dmarc RUA file name
     dmarc_rua_xml = args.file
@@ -281,11 +295,7 @@ if __name__ == "__main__":
     script_logger.debug("Start processing file " + str(dmarc_rua_xml) + " resolve dns: " + str(resolve))
     script_logger.debug("results file: " + str(result_log_file))
     
-    # In theory all xml files are in UTF-8 format but that is just theory.... I have seens some 
-    # files in the wild that have encoding="windows-1252" for example, 
-    # and lxml doesn't like that... so we just replace remove everything from <xml version...> to
-    # (but not including) <feedback> 
-    # Also in theory all files have a extention, but again "in the wild" I have seen reports where 
+    # In theory all files have a extention, but "in the wild" I have seen reports where 
     # all the dots (.) where replaced with spaces ( ) so the files don't have a extention anymore
     if not dmarc_rua_xml.endswith(".xml"):
         script_logger.warning("File '" + str(dmarc_rua_xml) + "' doesn't have a .xml extention")

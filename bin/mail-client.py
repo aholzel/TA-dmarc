@@ -21,7 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 ##################################################################
-# Author        : SMT - Arnold
+# Author        : Arnold Holzel
 # Creation date : 2017-05-31
 # Description   : Script to download attachments from a mailbox and store it
 #                 localy on disk. The script is made to download DMARC RUA reports
