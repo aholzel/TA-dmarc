@@ -66,9 +66,11 @@ SOFTWARE.
 # 2018-03-29    2.9         Arnold      Added support for .gzip files also created some additional checks on the file mime type to make sure everything
 #                                       is done to process a file before it is ignored.
 # 2019-03-25    3.0         Arnold      Added the sessionKey parameter for this script and to pass is to the dmarc-parcer script.
-#
+# 2019-11-21    3.1         Arnold      [DEL]   Migration code blocks
+#                                       [ADD]   Extra step (new step 3) to check the content of the XML to make sure there is only one report in there.
+#                                               If there is more than one report in the XML, split it into multiple reports
 ##################################################################
- 
+
 import os, sys, subprocess, shutil
 import errno, mimetypes
 import zipfile, gzip, zlib
@@ -101,7 +103,7 @@ def make_sure_path_exists(path):
             raise
         else:
             script_logger.debug("Directory \"" + path + "\" already exists")
- 
+
 def nonblank_lines(file):
     for lines in file:
         line = lines.rstrip()
@@ -113,15 +115,15 @@ def infile_replace(file, pattern, subst):
     file_handle = open(file, 'rb')
     file_string = file_handle.read()
     file_handle.close()
- 
+
     # Use RE package to allow for replacement (also allowing for (multiline) REGEX)
     file_string = (re.sub(pattern, subst, file_string))
- 
+
     # Write contents back to the file, the 'w' option makes sure the file is first truncated
     file_handle = open(file, 'wb')
     file_handle.write(file_string)
     file_handle.close()
- 
+
 def make_binary(input):
     if input == "0" or input.lower() == "false" or input.lower() == "f" or int(input) == 0:
         output = 0
@@ -139,68 +141,7 @@ def getsize(gzipfile):
     if f.read(2) != "\x1f\x8b": 
         raise IOError("not a gzip file") 
     f.seek(-4, 2) 
-    return struct.unpack("<i", f.read())[0] 
-    
-###################################################
-##          START MIGRATION CODE BLOCK  1/2      ##
-###################################################
-
-def check_if_in_dict(key_to_check, local_dict, default_dict):
-    if key_to_check in local_dict: 
-        give_back = local_dict[key_to_check]
-    elif key_to_check in default_dict:
-        give_back = default_dict[key_to_check]
-    else:
-        give_back = " "
-
-    return give_back
- 
-def decode(enc, key):
-    dec = []
-    enc = base64.urlsafe_b64decode(base64.urlsafe_b64decode(enc))
-    for i in range(len(enc)):
-        key_c = key[i % len(key)]
-        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
-        dec.append(dec_c)
-    return "".join(dec)
-    
-def migrate_to_new_conf(default_content, local_content, appname):
-    global splunk_info
-
-    fqdn = socket.getfqdn()
-    hostname = socket.gethostname()
-
-    if len(fqdn) > len(hostname):
-        defaultkey = fqdn
-    else:
-        defaultkey = hostname
-    
-    mailserver_host = check_if_in_dict("mailserver_host", local_content, default_content).strip("\"'")
-    mailserver_port = check_if_in_dict("mailserver_port", local_content, default_content).strip("\"'")
-    mailserver_protocol = check_if_in_dict("mailserver_protocol", local_content, default_content).strip("\"'")
-    mailserver_user = check_if_in_dict("mailserver_user", local_content, default_content).strip("\"'")
-    mailserver_pwd = check_if_in_dict("mailserver_pwd", local_content, default_content)
-    mailserver_pwd = mailserver_pwd.strip("\"'")
-    mailserver_mailboxfolder = check_if_in_dict("mailserver_mailboxfolder", local_content, default_content).strip("\"'")
-    skip_mail_download = check_if_in_dict("skip_mail_download", local_content, default_content)
-    
-    if len(ed_key) > 0:
-        clear_pwd = decode(mailserver_pwd, ed_key)
-    else:
-        clear_pwd = decode(mailserver_pwd, defaultkey)
-        
-    splunk_info.write_config(appname.lower(), "main", "mailserver_host", mailserver_host)
-    splunk_info.write_config(appname.lower(), "main", "mailserver_port", mailserver_port)
-    splunk_info.write_config(appname.lower(), "main", "mailserver_protocol", mailserver_protocol)
-    splunk_info.write_config(appname.lower(), "main", "mailserver_user", mailserver_user)
-    splunk_info.write_config(appname.lower(), "main", "mailserver_mailboxfolder", mailserver_mailboxfolder)
-    splunk_info.write_config(appname.lower(), "main", "skip_mail_download", skip_mail_download)
-    splunk_info.write_credentials(mailserver_user, clear_pwd, appname)
-    
-    
-###################################################
-##          END MIGRATION CODE BLOCK  2/2        ##
-###################################################   
+    return struct.unpack("<i", f.read())[0]  
 
 if __name__ == '__main__':
     options = argparse.ArgumentParser(epilog='Example: %(prog)s --sessionKey <SPLUNK SESSIONKEY>')
@@ -221,7 +162,7 @@ if __name__ == '__main__':
 
     # Set all the directory's based on the directory this script is in.
     app_root_dir = splunk_paths['app_root_dir']                                                 # The app root directory
-    app_default_dir = os.path.normpath(app_root_dir + os.sep + "default")                       # The Splunk app default directory			
+    app_default_dir = os.path.normpath(app_root_dir + os.sep + "default")                       # The Splunk app default directory                                               
     app_local_dir = os.path.normpath(app_root_dir + os.sep + "local")                           # The Splunk app local directory
     log_root_dir = os.path.normpath(app_root_dir + os.sep + "logs")                             # The root directory for the logs
     attachment_dir = os.path.normpath(log_root_dir + os.sep + "attach_raw")                     # The directory to store the attachments 
@@ -242,60 +183,6 @@ if __name__ == '__main__':
     if len(sessionKey) == 0:
         script_logger.critical("Did not receive a session key from splunkd. Please enable passAuth in inputs.conf for this script")
         sys.exit(2)
-        
-    ###################################################
-    ##          START MIGRATION CODE BLOCK  2/2      ##
-    ###################################################
-    # old_conf file for the migration to the new (v2.6 and later) config storage
-    script_logger.info("Check if a config migration is needed.")
-    old_default_conf_file = os.path.normpath(app_default_dir + os.sep + "dmarc_mailserver.conf")
-    old_local_conf_file = os.path.normpath(app_local_dir + os.sep + "dmarc_mailserver.conf")
-    local_content = {}
-    default_content = {}
-    
-    if os.path.isfile(old_local_conf_file):
-        # There is a local config file read it
-        local_content = {}
-        old_local_file = "yes"
-        with open(old_local_conf_file) as file:
-            for line in nonblank_lines(file):
-                if not line.startswith("#"):
-                    try:
-                        (key, val) = line.split('=', 1)
-                        key = key.strip()
-                        val = val.strip()
-                        local_content[str(key)] = val
-                    except ValueError:
-                        pass
-        os.remove(old_local_conf_file)
-    else:
-        old_local_file = "no"
-        
-    if os.path.isfile(old_default_conf_file):
-        # There is a default config file read it
-        default_content = {}
-        old_default_file = "yes"
-        with open(old_default_conf_file) as file:
-            for line in nonblank_lines(file):
-                if not line.startswith("#"):
-                    try:
-                        (key, val) = line.split('=', 1)
-                        key = key.strip()
-                        val = val.strip()
-                        default_content[str(key)] = val
-                    except ValueError:
-                        pass
-        os.remove(old_default_conf_file)
-    else:
-        old_default_file = "no"
-          
-    if old_local_file == "yes" or old_default_file == "yes":
-        script_logger.info("Old configuration file found, perform migration to new config first.")
-        migrate_to_new_conf(default_content, local_content, splunk_paths['app_name'])
-        
-    ##################################################
-    ##          END MIGRATION CODE BLOCK  2/2       ##
-    ##################################################
 
     splunk_command = os.path.normpath(splunk_bin_dir + os.sep + "splunk")                       # The splunk command in the bin dir
     custom_conf_file = str(splunk_paths['app_name'].lower()) + ".conf"
@@ -390,7 +277,7 @@ if __name__ == '__main__':
         script_logger.debug("Removing placeholder file in problem log directory")
 
     #########################################################################
-    # STEP 1: Download the mail from the mailbox if needed                  #
+   # STEP 1: Download the mail from the mailbox if needed                  #
     #########################################################################
     if skip_mail_download == 0:
         # Mail needs to be collected from the mailserver
@@ -500,9 +387,42 @@ if __name__ == '__main__':
         count_attachments += 1
         
     script_logger.info("Done uncompressing " + str(count_attachments) + " file(s) in the attachment directory")
-     
+    
+                ########################################################################
+    # STEP 3: Check the created XML file to see if it is just 1 report     #
     ########################################################################
-    # STEP 3: Process the XML files that are in the xml_dir                #
+    for xmlfile in os.listdir(xml_dir):
+        script_logger.debug("Start the content checking of the xml file: \'" + str(xmlfile) + "\'")
+        
+        firstCharFileName = xmlfile[:1]
+        if not isinstance(firstCharFileName,int):
+            with open(os.path.normpath(xml_dir + os.sep + xmlfile),'r') as file:
+                data = file.read()
+            
+            # count the number of reports in the xml file. normaly there will be only one but I have seen it 
+            # multiple times that for some reason there are 2 or more reports in one xml. The etree parser will than
+            # raise the following error and stop processing the file.
+            #  ParseError: junk after document element: line X, column Y
+            numberOfReports = data.count('<?xml')
+
+            if numberOfReports > 1:
+                script_logger.info("Found " + str(numberOfReports) + " reports in file: \'" + str(xmlfile) + "\'")
+                found = re.findall(r'(\<\?xml.*?\<\/feedback\>)', data, re.M | re.S)
+                
+                # create for every regex group a new file and put a number in front of it.
+                for i in range(1, len(found)+1):
+                    open(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)),'w').write(found[i-1])
+                    script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\'")
+                
+                # try to remove the original file 
+                try:
+                    os.remove(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)))
+                except OSError:
+                    script_logger.exception("Unable to remove file: \"" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\" ")
+                    pass
+            
+    ########################################################################
+    # STEP 4: Process the XML files that are in the xml_dir                #
     ########################################################################
     script_logger.info("Start processing files in the xml directory")
     count_xml_files = 0
@@ -560,7 +480,7 @@ if __name__ == '__main__':
     script_logger.info("Done processing "+ str(count_xml_files) +" file(s) in the xml directory")
 
     ############################################################################
-    # STEP 4: Try to remove the files again that failed removal the first time #
+    # STEP 5: Try to remove the files again that failed removal the first time #
     ############################################################################
 
     # Check if there are any files left in the attachment_dir that could not be removed
