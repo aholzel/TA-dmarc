@@ -30,41 +30,42 @@ SOFTWARE.
 #                 The script can handle POP3, POP3 SSL, IMAP and IMAP SSL
 #
 # Version history
-# Date          Version     Author      Description
-# 2017-05-31    1.0         Arnold      Initial version 
-# 2017-06-01    1.1         Arnold      Added POP3 support
-# 2017-06-05    1.2         Arnold      Added the obfuscation/de-obfuscation of the mail account password
-#                                       Removed the Write_to_log function and import it from the dmarc_converter.py script
-# 2017-06-07    1.3         Arnold      Bug fixes, moved the Write_to_log function back in because import didn't always work
-# 2017-06-26    1.4         Arnold      Added function to write line numbers to log files to make trouble shooting easier
-# 2017-07-06    1.5         Arnold      Made the option to use POP3 secure
-#                                       Made the POP3 function similar to the IMAP function and made more logging available
-#                                       Small bugfixes
-# 2017-07-10    1.6         Arnold      Bugfixes 
-# 2017-07-17    1.7         Arnold      Bugfix in the imap mail function, the search did't return the correct mails in all cases.
-#                                       Bugfix in the pop3 mail function, the connection wasn't closed correct so mails were not deleted.
-#                                       Changed the pop3 mail search, subject doesn't need to start with "Report Domain" anymore
-#                                       it just needs to contain in, so forwarded messages are also picked up.
-# 2017-08-08    1.8         Arnold      Redirected the stdout to a variable to catch the POP3 debug info.
-#                                       Changed some options in the opening of files because in Windows it resulted in errors
-#                                       Added code to prevent the creation of .pyc file
-# 2017-11-23    1.9         Arnold      Minor bug fix
-# 2017-11-29    2.0         Arnold      Removed the custom log function and rownumber function, and replaced it with the default Python
-#                                       logging function. This makes it also possible to log the exception info to the logfile. Only 
-#                                       downside is that the VERBOSE option is now removed and all those messages are now on DEBUG level.
-# 2017-12-04    2.1         Arnold      Bug fix in IMAP function.
-# 2017-12-08    2.2         Arnold      Typo correction
-#                                       Changed the subject checking to check in lowercase.
-# 2017-12-28    2.3         Arnold      Rewritten and removed parts to make use of the (external) Splunk_Info and Logger classes.
-#                                       - The password is not in the config file anymore but in the Splunk password store, so get it from there
-#                                       - The custom config file has a new name, adjusted script to this.
-# 2018-01-12    2.4         Arnold      Replaced and removed some parts of the code of fix some problems.
-#                                       Added --sessionKey option to pass the sessionKey via the cli
-#                                       Fixed a bug that deleted non dmarc related emails in POP3(s) setup.
-# 2018-05-31    2.5         Arnold      Added .gzip files to the allowed attachements to download, because despite the RFC specs this is also used.
-# 2019-03-25    2.6         Arnold      Made a list with the allowed mail subjects because dispite the RFC there is a large variety of
-#                                       subjects used.
-#                                       Made a check to see if there is a actual sender.
+# Date          Version     Author      Type    Description
+# 2017-05-31    1.0         Arnold              Initial version 
+# 2017-06-01    1.1         Arnold              Added POP3 support
+# 2017-06-05    1.2         Arnold              Added the obfuscation/de-obfuscation of the mail account password
+#                                               Removed the Write_to_log function and import it from the dmarc_converter.py script
+# 2017-06-07    1.3         Arnold              Bug fixes, moved the Write_to_log function back in because import didn't always work
+# 2017-06-26    1.4         Arnold              Added function to write line numbers to log files to make trouble shooting easier
+# 2017-07-06    1.5         Arnold              Made the option to use POP3 secure
+#                                               Made the POP3 function similar to the IMAP function and made more logging available
+#                                               Small bugfixes
+# 2017-07-10    1.6         Arnold              Bugfixes 
+# 2017-07-17    1.7         Arnold              Bugfix in the imap mail function, the search did't return the correct mails in all cases.
+#                                               Bugfix in the pop3 mail function, the connection wasn't closed correct so mails were not deleted.
+#                                               Changed the pop3 mail search, subject doesn't need to start with "Report Domain" anymore
+#                                               it just needs to contain in, so forwarded messages are also picked up.
+# 2017-08-08    1.8         Arnold              Redirected the stdout to a variable to catch the POP3 debug info.
+#                                               Changed some options in the opening of files because in Windows it resulted in errors
+#                                               Added code to prevent the creation of .pyc file
+# 2017-11-23    1.9         Arnold              Minor bug fix
+# 2017-11-29    2.0         Arnold              Removed the custom log function and rownumber function, and replaced it with the default Python
+#                                               logging function. This makes it also possible to log the exception info to the logfile. Only 
+#                                               downside is that the VERBOSE option is now removed and all those messages are now on DEBUG level.
+# 2017-12-04    2.1         Arnold              Bug fix in IMAP function.
+# 2017-12-08    2.2         Arnold              Typo correction
+#                                               Changed the subject checking to check in lowercase.
+# 2017-12-28    2.3         Arnold              Rewritten and removed parts to make use of the (external) Splunk_Info and Logger classes.
+#                                               - The password is not in the config file anymore but in the Splunk password store, so get it from there
+#                                               - The custom config file has a new name, adjusted script to this.
+# 2018-01-12    2.4         Arnold              Replaced and removed some parts of the code of fix some problems.
+#                                               Added --sessionKey option to pass the sessionKey via the cli
+#                                               Fixed a bug that deleted non dmarc related emails in POP3(s) setup.
+# 2018-05-31    2.5         Arnold              Added .gzip files to the allowed attachements to download, because despite the RFC specs this is also used.
+# 2019-03-25    2.6         Arnold              Made a list with the allowed mail subjects because dispite the RFC there is a large variety of
+#                                               subjects used.
+#                                               Made a check to see if there is a actual sender.
+# 2019-11-21    2.6.1       Arnold      [FIX]   Type in the get_credentials name
 #
 ##################################################################
  
@@ -140,7 +141,7 @@ if args.use_conf_file:
     args.port = splunk_info.get_config(custom_conf_file, "main", "mailserver_port")
     args.protocol = splunk_info.get_config(custom_conf_file, "main", "mailserver_protocol")
     args.user = splunk_info.get_config(custom_conf_file, "main", "mailserver_user")                                                                    
-    args.password = splunk_info.get_credetials(args.user)
+    args.password = splunk_info.get_credentials(args.user)
     args.folder = splunk_info.get_config(custom_conf_file, "main", "mailserver_mailboxfolder")
     
     script_logger.debug("host: " + str(args.host) + "; port: " + str(args.port) + "; protocol: " + str(args.protocol) + "; user: " + str(args.user) + "; folder: " + str(args.folder))

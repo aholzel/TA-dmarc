@@ -26,46 +26,46 @@ SOFTWARE.
 # Description   : Wrapper script to download and process DMARC RUA files                 
 #
 # Version history
-# Date          Version     Author      Description
-# 2017-05-29    1.0         Arnold      Initial version
-# 2017-05-29    1.1         Arnold      Made it possible to roll over logfiles
-# 2017-05-31    1.2         Arnold      Removed a print development statement
-#                                       Moved the removal of the XML files to the dmarc-parcer.py script.
-# 2017-06-01    1.3         Arnold      Added check to see if there realy is a XML file inside the attachment
-#                                       this to (somewhat) protect agains malware mails/attachments
-# 2017-06-05    1.4         Arnold      Added the obfuscation/de-obfuscation of the mail account password
-#                                       If the password is comming from the .conf file from the default dir it is assumed to
-#                                       be in plaintext, is is obfustated, writen to de .conf file in the local dir and the 
-#                                       row from the default conf file is removed.
-# 2017-06-07    1.5         Arnold      Bugfixes
-# 2017-06-20    1.6         Arnold      Added option to resolve ip's to hostnames (BETA testing only)
-# 2017-06-26    1.7         Arnold      Added function to write line numbers to log files to make trouble shouting easier
-#                                       Fixed problem with gz files that have complete paths in it, in combination with Windows
-#                                       Other minor changes
-# 2017-06-29    1.8         Arnold      Fixed issue with os.system calls on installations where de Splunk installation path
-#                                       has a space in it. (C:\Program Files\Splunk\...)
-# 2017-07-10    1.9         Arnold      Bugfixes
-# 2017-07-17    2.0         Arnold      Fixed problem where due to the change from os.system to subprocess.Popen the returncode 
-#                                       didn't return correct (was never 0 even if everythin was ok)
-# 2017-08-04    2.1         Arnold      Bugfix in gzip open.
-# 2017-08-05    2.2         Arnold      Remove the placeholder file in the problem dir
-# 2017-11-24    2.3         Arnold      Added a try - except for the removal of the attachment so if the removal fails the script continues
-#                                       Added a step 4 to re-try to remove the files in the attachment dir that failed removal the first time.
-# 2017-11-29    2.4         Arnold      Removed the custom log function and rownumber function, and replaced it with the default Python
-#                                       logging function. This makes it also possible to log the exception info to the logfile. Only 
-#                                       downside is that the VERBOSE option is now removed and all those messages are now on DEBUG level.
-# 2017-12-01    2.5         Arnold      Minor bugfixes
-#                                       Added code to try to move files that can not be deleted to the problem directory
-# 2017-12-28    2.6         Arnold      Rewritten and removed parts to make use of the (external) Splunk_Info and Logger classes.
-#                                       - The password is not in the config file anymore but in the Splunk password store, so get it from there
-#                                       - The custom config file has a new name, adjusted script to this.
-#                                       - Removed method to get the config and use the one in the Splunk_Info class
-# 2018-01-12    2.7         Arnold      Added the sessionKey for the mail-client script.
-# 2018-03-02    2.8         Arnold      "Fixed" the timeout problems with nslookup, so the resolve_ips option is now available and honored.
-#                                       Included an max file size check to prevent the opening of zip bombs.
-# 2018-03-29    2.9         Arnold      Added support for .gzip files also created some additional checks on the file mime type to make sure everything
-#                                       is done to process a file before it is ignored.
-# 2019-03-25    3.0         Arnold      Added the sessionKey parameter for this script and to pass is to the dmarc-parcer script.
+# Date          Version     Author      Type    Description
+# 2017-05-29    1.0         Arnold              Initial version
+# 2017-05-29    1.1         Arnold              Made it possible to roll over logfiles
+# 2017-05-31    1.2         Arnold              Removed a print development statement
+#                                               Moved the removal of the XML files to the dmarc-parcer.py script.
+# 2017-06-01    1.3         Arnold              Added check to see if there realy is a XML file inside the attachment
+#                                               this to (somewhat) protect agains malware mails/attachments
+# 2017-06-05    1.4         Arnold              Added the obfuscation/de-obfuscation of the mail account password
+#                                               If the password is comming from the .conf file from the default dir it is assumed to
+#                                               be in plaintext, is is obfustated, writen to de .conf file in the local dir and the 
+#                                               row from the default conf file is removed.
+# 2017-06-07    1.5         Arnold              Bugfixes
+# 2017-06-20    1.6         Arnold              Added option to resolve ip's to hostnames (BETA testing only)
+# 2017-06-26    1.7         Arnold              Added function to write line numbers to log files to make trouble shouting easier
+#                                               Fixed problem with gz files that have complete paths in it, in combination with Windows
+#                                               Other minor changes
+# 2017-06-29    1.8         Arnold              Fixed issue with os.system calls on installations where de Splunk installation path
+#                                               has a space in it. (C:\Program Files\Splunk\...)
+# 2017-07-10    1.9         Arnold              Bugfixes
+# 2017-07-17    2.0         Arnold              Fixed problem where due to the change from os.system to subprocess.Popen the returncode 
+#                                               didn't return correct (was never 0 even if everythin was ok)
+# 2017-08-04    2.1         Arnold              Bugfix in gzip open.
+# 2017-08-05    2.2         Arnold              Remove the placeholder file in the problem dir
+# 2017-11-24    2.3         Arnold              Added a try - except for the removal of the attachment so if the removal fails the script continues
+#                                               Added a step 4 to re-try to remove the files in the attachment dir that failed removal the first time.
+# 2017-11-29    2.4         Arnold              Removed the custom log function and rownumber function, and replaced it with the default Python
+#                                               logging function. This makes it also possible to log the exception info to the logfile. Only 
+#                                               downside is that the VERBOSE option is now removed and all those messages are now on DEBUG level.
+# 2017-12-01    2.5         Arnold              Minor bugfixes
+#                                               Added code to try to move files that can not be deleted to the problem directory
+# 2017-12-28    2.6         Arnold              Rewritten and removed parts to make use of the (external) Splunk_Info and Logger classes.
+#                                               - The password is not in the config file anymore but in the Splunk password store, so get it from there
+#                                               - The custom config file has a new name, adjusted script to this.
+#                                               - Removed method to get the config and use the one in the Splunk_Info class
+# 2018-01-12    2.7         Arnold              Added the sessionKey for the mail-client script.
+# 2018-03-02    2.8         Arnold              "Fixed" the timeout problems with nslookup, so the resolve_ips option is now available and honored.
+#                                               Included an max file size check to prevent the opening of zip bombs.
+# 2018-03-29    2.9         Arnold              Added support for .gzip files also created some additional checks on the file mime type to make sure everything
+#                                               is done to process a file before it is ignored.
+# 2019-03-25    3.0         Arnold              Added the sessionKey parameter for this script and to pass is to the dmarc-parcer script.
 # 2019-11-21    3.1         Arnold      [DEL]   Migration code blocks
 #                                       [ADD]   Extra step (new step 3) to check the content of the XML to make sure there is only one report in there.
 #                                               If there is more than one report in the XML, split it into multiple reports
@@ -84,8 +84,6 @@ import splunklib.client as client
 
 import classes.splunk_info as si
 import classes.custom_logger as c_logger
-
-import socket, base64, hashlib # For migration to new config file
 
 delete_files_after = 7              # days after which old log files will be deleted 
 max_decompressed_file_size = 100    # Max size in MB that a decompressed XML may be, this to prevent gzip/zip bombs

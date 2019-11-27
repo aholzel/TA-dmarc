@@ -17,14 +17,15 @@ limitations under the License.
 #                 and if so what the current role is in the cluster (member or captain)
 #
 # Version history
-# Date          Version     Author              Description
-# 2017-12-12    1.0         Arnold Holzel       initial version
-# 2017-12-14    1.1         Arnold Holzel       Added the SHC role shc_deployer
-# 2017-12-18    1.2         Arnold Holzel       Added the get_credetials and the write_credentials methods
-# 2017-12-19    1.3         Arnold Holzel       added the write_config method
-# 2017-12-22    1.4         Arnold Holzel       the get_credetials method will now give back "NO_PASSWORD_FOUND_FOR_THIS_USER"  
+# Date          Version     Author      Type    Description
+# 2017-12-12    1.0         Arnold              initial version
+# 2017-12-14    1.1         Arnold              Added the SHC role shc_deployer
+# 2017-12-18    1.2         Arnold              Added the get_credetials and the write_credentials methods
+# 2017-12-19    1.3         Arnold              added the write_config method
+# 2017-12-22    1.4         Arnold              the get_credetials method will now give back "NO_PASSWORD_FOUND_FOR_THIS_USER"  
 #                                               if no password was found
-# 2017-12-28    1.5         Arnold Holzel       made the Splunk_Info class more generic by using the app name as custom conf file name.
+# 2017-12-28    1.5         Arnold              made the Splunk_Info class more generic by using the app name as custom conf file name.
+# 2019-11-27    1.6.0       Arnold      [FIX]   typo in the get_credentials name
 #
 ##################################################################
 import logging, logging.handlers
@@ -35,7 +36,7 @@ import ConfigParser
 import splunklib.client as client
 import splunk.entity as entity
 
-__author__ = 'Arnold Holzel'
+__author__ = 'Arnold'
 __version__ = '1.5'
 __license__ = 'Apache License 2.0'
 
@@ -230,7 +231,7 @@ class Splunk_Info(object):
         with open(local_file, 'wb') as configfile:
             config.write(configfile)
         
-    def get_credetials(self, username=None, app="-"):        
+    def get_credentials(self, username=None, app="-"):        
         if app in [None, '','-']:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             splunk_paths = self.give_splunk_paths(script_dir)
