@@ -32,7 +32,7 @@ SOFTWARE.
 #                                               directly in the /bin dir or in /bin/other/dir 
 # 2017-12-28    1.3         Arnold Holzel       Made changes to the custom config file name to make it the same as the app name
 # 2018-05-07    1.4         Arnold Holzel       Added the output and resolve_ips options
-#                                               Replaced hard reverse to the app name in the connection string to the "app_name" variable
+#                                               Replaced hard reference to the app name in the connection string to the "app_name" variable
 #
 ##################################################################
 import json

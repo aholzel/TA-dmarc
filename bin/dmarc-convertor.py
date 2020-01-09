@@ -46,7 +46,7 @@ SOFTWARE.
 #                                               has a space in it. (C:\Program Files\Splunk\...)
 # 2017-07-10    1.9         Arnold              Bugfixes
 # 2017-07-17    2.0         Arnold              Fixed problem where due to the change from os.system to subprocess.Popen the returncode 
-#                                               didn't return correct (was never 0 even if everythin was ok)
+#                                               didn't return correct (was never 0 even if everything was ok)
 # 2017-08-04    2.1         Arnold              Bugfix in gzip open.
 # 2017-08-05    2.2         Arnold              Remove the placeholder file in the problem dir
 # 2017-11-24    2.3         Arnold              Added a try - except for the removal of the attachment so if the removal fails the script continues
@@ -69,6 +69,9 @@ SOFTWARE.
 # 2019-11-21    3.1         Arnold      [DEL]   Migration code blocks
 #                                       [ADD]   Extra step (new step 3) to check the content of the XML to make sure there is only one report in there.
 #                                               If there is more than one report in the XML, split it into multiple reports
+# 2019-12-13    3.2.0       Arnold      [FIX]   Fixed some bugs in the check if there are multiple reports in the XML
+#                                       [ADD]   Added additional check to see if there are multiple reports in the XML
+#                                       [FIX]   FIxed some typos
 ##################################################################
 
 import os, sys, subprocess, shutil
@@ -343,7 +346,7 @@ if __name__ == '__main__':
                             script_logger.critical("Skipping attachment. The zip file doesn't contain a XML file! File in attachment: " + str(file))
                     else:
                         sizeMB = zipinfo.file_size/1024/1024
-                        script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + srt(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
+                        script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + str(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
                 zf.close()
         elif str(file_extention) == ".gz" or str(file_extention) == ".gzip" or str(file_encoding) == "gzip" or str(file_mime_type) == "application/gzip":
             # The file is a gzip file
@@ -367,7 +370,7 @@ if __name__ == '__main__':
                     script_logger.exception("Something went wrong reading the gz file \"" + str(filename) + "\" with mimetype: " + str(file_mime_type) + " and encoding: " + str(file_encoding) + " Traceback: ")
                     pass
             else:
-                script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + srt(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
+                script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + str(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
         else:
             script_logger.error("There is a problem with file: \"" + str(filename) + "\", mimetype:\"" + str(file_mime_type) + "\", encoding: \"" + str(file_encoding) + " and it cannot be processed. Will move file to problem dir and continue.")
             shutil.copy2(os.path.normpath(attachment_dir + os.sep + filename), problem_dir)
@@ -386,12 +389,13 @@ if __name__ == '__main__':
         
     script_logger.info("Done uncompressing " + str(count_attachments) + " file(s) in the attachment directory")
     
-                ########################################################################
+    ########################################################################
     # STEP 3: Check the created XML file to see if it is just 1 report     #
     ########################################################################
     for xmlfile in os.listdir(xml_dir):
         script_logger.debug("Start the content checking of the xml file: \'" + str(xmlfile) + "\'")
         
+        # Check if we didn't already processed the file. 
         firstCharFileName = xmlfile[:1]
         if not isinstance(firstCharFileName,int):
             with open(os.path.normpath(xml_dir + os.sep + xmlfile),'r') as file:
@@ -401,10 +405,12 @@ if __name__ == '__main__':
             # multiple times that for some reason there are 2 or more reports in one xml. The etree parser will than
             # raise the following error and stop processing the file.
             #  ParseError: junk after document element: line X, column Y
+            
+            # test number 1
             numberOfReports = data.count('<?xml')
-
+            
             if numberOfReports > 1:
-                script_logger.info("Found " + str(numberOfReports) + " reports in file: \'" + str(xmlfile) + "\'")
+                script_logger.info("Test #1, Found " + str(numberOfReports) + " reports in file: \'" + str(xmlfile) + "\'")
                 found = re.findall(r'(\<\?xml.*?\<\/feedback\>)', data, re.M | re.S)
                 
                 # create for every regex group a new file and put a number in front of it.
@@ -412,12 +418,33 @@ if __name__ == '__main__':
                     open(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)),'w').write(found[i-1])
                     script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\'")
                 
-                # try to remove the original file 
-                try:
-                    os.remove(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)))
-                except OSError:
-                    script_logger.exception("Unable to remove file: \"" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\" ")
-                    pass
+                    # try to remove the original file 
+                    try:
+                        script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
+                        os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
+                    except OSError:
+                        script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
+                        pass
+            
+            # test number 2
+            numberOfReports_test2 = data.count('<feedback>')
+
+            if numberOfReports_test2 > 1 and numberOfReports <= 1:
+                script_logger.info("Test #2, Found " + str(numberOfReports_test2) + " reports in file: \'" + str(xmlfile) + "\'")
+                found_test2 = re.findall(r'(\<feedback\>.*?\<\/feedback\>)', data, re.M | re.S)
+
+                # create for every regex group a new file and put a number in front of it.
+                for j in range(1, len(found_test2)+1):
+                    open(os.path.normpath(xml_dir + os.sep + str(j) + '_' + str(xmlfile)),'w').write(found_test2[j-1])
+                    script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(j) + '_' + str(xmlfile) + "\'")
+                
+                    # try to remove the original file 
+                    try:
+                        script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
+                        os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
+                    except OSError:
+                        script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
+                        pass
             
     ########################################################################
     # STEP 4: Process the XML files that are in the xml_dir                #
