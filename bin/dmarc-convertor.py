@@ -71,7 +71,8 @@ SOFTWARE.
 #                                               If there is more than one report in the XML, split it into multiple reports
 # 2019-12-13    3.2.0       Arnold      [FIX]   Fixed some bugs in the check if there are multiple reports in the XML
 #                                       [ADD]   Added additional check to see if there are multiple reports in the XML
-#                                       [FIX]   FIxed some typos
+#                                       [FIX]   Fixed some typos
+# 2020-01-15    3.2.1       Arnold      [FIX]   Problems in the size check loop that made the script crash.
 ##################################################################
 
 import os, sys, subprocess, shutil
@@ -370,6 +371,7 @@ if __name__ == '__main__':
                     script_logger.exception("Something went wrong reading the gz file \"" + str(filename) + "\" with mimetype: " + str(file_mime_type) + " and encoding: " + str(file_encoding) + " Traceback: ")
                     pass
             else:
+                sizeMB = getsize(os.path.normpath(attachment_dir + os.sep + filename))/1024/1024
                 script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + str(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
         else:
             script_logger.error("There is a problem with file: \"" + str(filename) + "\", mimetype:\"" + str(file_mime_type) + "\", encoding: \"" + str(file_encoding) + " and it cannot be processed. Will move file to problem dir and continue.")
