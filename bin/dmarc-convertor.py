@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Copyright 2017-2019 Arnold Holzel
+Copyright 2017- Arnold Holzel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -73,6 +73,9 @@ SOFTWARE.
 #                                       [ADD]   Added additional check to see if there are multiple reports in the XML
 #                                       [FIX]   Fixed some typos
 # 2020-01-15    3.2.1       Arnold      [FIX]   Problems in the size check loop that made the script crash.
+# 2020-08-28    3.3.0       Arnold      [FIX]   Fixed a bug that made the script crash if there was a directory in the dmarc_xml dir for example a "__MACOSX" dir
+#                                       [DEL]   Variable from the old code/migration
+#
 ##################################################################
 
 import os, sys, subprocess, shutil
@@ -91,7 +94,6 @@ import classes.custom_logger as c_logger
 
 delete_files_after = 7              # days after which old log files will be deleted 
 max_decompressed_file_size = 100    # Max size in MB that a decompressed XML may be, this to prevent gzip/zip bombs
-ed_key = ""                         # Encoding/decoding key deprecated as of version 2.6 only needed for migration
 
 #########################################
 # NO NEED TO CHANGE ANYTHING BELOW HERE #
@@ -395,59 +397,69 @@ if __name__ == '__main__':
     # STEP 3: Check the created XML file to see if it is just 1 report     #
     ########################################################################
     for xmlfile in os.listdir(xml_dir):
-        script_logger.debug("Start the content checking of the xml file: \'" + str(xmlfile) + "\'")
+        script_logger.debug("Start the content checking of: \'" + str(xmlfile) + "\'")
         
         # Check if we didn't already processed the file. 
         firstCharFileName = xmlfile[:1]
         if not isinstance(firstCharFileName,int):
-            with open(os.path.normpath(xml_dir + os.sep + xmlfile),'r') as file:
-                data = file.read()
-            
-            # count the number of reports in the xml file. normaly there will be only one but I have seen it 
-            # multiple times that for some reason there are 2 or more reports in one xml. The etree parser will than
-            # raise the following error and stop processing the file.
-            #  ParseError: junk after document element: line X, column Y
-            
-            # test number 1
-            numberOfReports = data.count('<?xml')
-            
-            if numberOfReports > 1:
-                script_logger.info("Test #1, Found " + str(numberOfReports) + " reports in file: \'" + str(xmlfile) + "\'")
-                found = re.findall(r'(\<\?xml.*?\<\/feedback\>)', data, re.M | re.S)
+            # if we are dealing with a file 
+            if os.path.isfile(os.path.normpath(xml_dir + os.sep + xmlfile)):
+                with open(os.path.normpath(xml_dir + os.sep + xmlfile),'r') as file:
+                    data = file.read()
                 
-                # create for every regex group a new file and put a number in front of it.
-                for i in range(1, len(found)+1):
-                    open(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)),'w').write(found[i-1])
-                    script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\'")
+                # count the number of reports in the xml file. normaly there will be only one but I have seen it 
+                # multiple times that for some reason there are 2 or more reports in one xml. The etree parser will than
+                # raise the following error and stop processing the file.
+                #  ParseError: junk after document element: line X, column Y
                 
-                    # try to remove the original file 
-                    try:
-                        script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
-                        os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
-                    except OSError:
-                        script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
-                        pass
-            
-            # test number 2
-            numberOfReports_test2 = data.count('<feedback>')
+                # test number 1
+                numberOfReports = data.count('<?xml')
+                
+                if numberOfReports > 1:
+                    script_logger.info("Test #1, Found " + str(numberOfReports) + " reports in file: \'" + str(xmlfile) + "\'")
+                    found = re.findall(r'(\<\?xml.*?\<\/feedback\>)', data, re.M | re.S)
+                    
+                    # create for every regex group a new file and put a number in front of it.
+                    for i in range(1, len(found)+1):
+                        open(os.path.normpath(xml_dir + os.sep + str(i) + '_' + str(xmlfile)),'w').write(found[i-1])
+                        script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(i) + '_' + str(xmlfile) + "\'")
+                    
+                        # try to remove the original file 
+                        try:
+                            script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
+                            os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
+                        except OSError:
+                            script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
+                            pass
+                
+                # test number 2
+                numberOfReports_test2 = data.count('<feedback>')
 
-            if numberOfReports_test2 > 1 and numberOfReports <= 1:
-                script_logger.info("Test #2, Found " + str(numberOfReports_test2) + " reports in file: \'" + str(xmlfile) + "\'")
-                found_test2 = re.findall(r'(\<feedback\>.*?\<\/feedback\>)', data, re.M | re.S)
+                if numberOfReports_test2 > 1 and numberOfReports <= 1:
+                    script_logger.info("Test #2, Found " + str(numberOfReports_test2) + " reports in file: \'" + str(xmlfile) + "\'")
+                    found_test2 = re.findall(r'(\<feedback\>.*?\<\/feedback\>)', data, re.M | re.S)
 
-                # create for every regex group a new file and put a number in front of it.
-                for j in range(1, len(found_test2)+1):
-                    open(os.path.normpath(xml_dir + os.sep + str(j) + '_' + str(xmlfile)),'w').write(found_test2[j-1])
-                    script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(j) + '_' + str(xmlfile) + "\'")
-                
-                    # try to remove the original file 
-                    try:
-                        script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
-                        os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
-                    except OSError:
-                        script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
-                        pass
-            
+                    # create for every regex group a new file and put a number in front of it.
+                    for j in range(1, len(found_test2)+1):
+                        open(os.path.normpath(xml_dir + os.sep + str(j) + '_' + str(xmlfile)),'w').write(found_test2[j-1])
+                        script_logger.debug("Created new file: \'" + str(xml_dir) + os.sep + str(j) + '_' + str(xmlfile) + "\'")
+                    
+                        # try to remove the original file 
+                        try:
+                            script_logger.debug('Removing original file: \'' + str(xml_dir) + os.sep + str(xmlfile) + '\'')
+                            os.remove(os.path.normpath(xml_dir + os.sep + xmlfile))
+                        except OSError:
+                            script_logger.exception("Unable to remove original file: \"" + str(xml_dir) + os.sep + str(xmlfile) + "\" ")
+                            pass
+            else:
+                # the current item is a directory, that is not what we expect or can deal with so remove it.
+                # this can occure when zip files are repacked on Mac systems, you than get a directory
+                # named "__MACOSX"
+                try:
+                    script_logger.warning('Found a directory named: "' + str(xmlfile) + '" deleting it')
+                    shutil.rmtree(os.path.normpath(xml_dir + os.sep + xmlfile))
+                except Exception:
+                    script_logger.exception('Problems deleting directory "' + str(os.path.normpath(xml_dir + os.sep + xmlfile)) + '" :')
     ########################################################################
     # STEP 4: Process the XML files that are in the xml_dir                #
     ########################################################################
