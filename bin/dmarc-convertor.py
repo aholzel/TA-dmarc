@@ -26,55 +26,11 @@ SOFTWARE.
 # Description   : Wrapper script to download and process DMARC RUA files                 
 #
 # Version history
-# Date          Version     Author      Type    Description
-# 2017-05-29    1.0         Arnold              Initial version
-# 2017-05-29    1.1         Arnold              Made it possible to roll over logfiles
-# 2017-05-31    1.2         Arnold              Removed a print development statement
-#                                               Moved the removal of the XML files to the dmarc-parcer.py script.
-# 2017-06-01    1.3         Arnold              Added check to see if there realy is a XML file inside the attachment
-#                                               this to (somewhat) protect agains malware mails/attachments
-# 2017-06-05    1.4         Arnold              Added the obfuscation/de-obfuscation of the mail account password
-#                                               If the password is comming from the .conf file from the default dir it is assumed to
-#                                               be in plaintext, is is obfustated, writen to de .conf file in the local dir and the 
-#                                               row from the default conf file is removed.
-# 2017-06-07    1.5         Arnold              Bugfixes
-# 2017-06-20    1.6         Arnold              Added option to resolve ip's to hostnames (BETA testing only)
-# 2017-06-26    1.7         Arnold              Added function to write line numbers to log files to make trouble shouting easier
-#                                               Fixed problem with gz files that have complete paths in it, in combination with Windows
-#                                               Other minor changes
-# 2017-06-29    1.8         Arnold              Fixed issue with os.system calls on installations where de Splunk installation path
-#                                               has a space in it. (C:\Program Files\Splunk\...)
-# 2017-07-10    1.9         Arnold              Bugfixes
-# 2017-07-17    2.0         Arnold              Fixed problem where due to the change from os.system to subprocess.Popen the returncode 
-#                                               didn't return correct (was never 0 even if everything was ok)
-# 2017-08-04    2.1         Arnold              Bugfix in gzip open.
-# 2017-08-05    2.2         Arnold              Remove the placeholder file in the problem dir
-# 2017-11-24    2.3         Arnold              Added a try - except for the removal of the attachment so if the removal fails the script continues
-#                                               Added a step 4 to re-try to remove the files in the attachment dir that failed removal the first time.
-# 2017-11-29    2.4         Arnold              Removed the custom log function and rownumber function, and replaced it with the default Python
-#                                               logging function. This makes it also possible to log the exception info to the logfile. Only 
-#                                               downside is that the VERBOSE option is now removed and all those messages are now on DEBUG level.
-# 2017-12-01    2.5         Arnold              Minor bugfixes
-#                                               Added code to try to move files that can not be deleted to the problem directory
-# 2017-12-28    2.6         Arnold              Rewritten and removed parts to make use of the (external) Splunk_Info and Logger classes.
-#                                               - The password is not in the config file anymore but in the Splunk password store, so get it from there
-#                                               - The custom config file has a new name, adjusted script to this.
-#                                               - Removed method to get the config and use the one in the Splunk_Info class
-# 2018-01-12    2.7         Arnold              Added the sessionKey for the mail-client script.
-# 2018-03-02    2.8         Arnold              "Fixed" the timeout problems with nslookup, so the resolve_ips option is now available and honored.
-#                                               Included an max file size check to prevent the opening of zip bombs.
-# 2018-03-29    2.9         Arnold              Added support for .gzip files also created some additional checks on the file mime type to make sure everything
-#                                               is done to process a file before it is ignored.
-# 2019-03-25    3.0         Arnold              Added the sessionKey parameter for this script and to pass is to the dmarc-parcer script.
-# 2019-11-21    3.1         Arnold      [DEL]   Migration code blocks
-#                                       [ADD]   Extra step (new step 3) to check the content of the XML to make sure there is only one report in there.
-#                                               If there is more than one report in the XML, split it into multiple reports
-# 2019-12-13    3.2.0       Arnold      [FIX]   Fixed some bugs in the check if there are multiple reports in the XML
-#                                       [ADD]   Added additional check to see if there are multiple reports in the XML
-#                                       [FIX]   Fixed some typos
-# 2020-01-15    3.2.1       Arnold      [FIX]   Problems in the size check loop that made the script crash.
-# 2020-08-28    3.3.0       Arnold      [FIX]   Fixed a bug that made the script crash if there was a directory in the dmarc_xml dir for example a "__MACOSX" dir
-#                                       [DEL]   Variable from the old code/migration
+#| Date       | Version | Author  | **[Type]** Description                                                                |
+#|:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
+#| 2021-02-19 | 4.0.0   | Arnold  | **[MOD]** Changes in the way the size of a uncompressed file is checked.
+#                                   **[MOD]** Changed everything to Python3 
+#                                   **[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.
 #
 ##################################################################
 
@@ -140,13 +96,11 @@ def make_binary(input):
     
 def getsize(gzipfile): 
     import struct 
-    f = open(gzipfile, "rb")
     
-    if f.read(2) != "\x1f\x8b": 
-        raise IOError("not a gzip file") 
-    f.seek(-4, 2) 
-    return struct.unpack("<i", f.read())[0]  
-
+    with open(gzipfile, 'rb') as f:
+        f.seek(-4, 2)
+        return struct.unpack('I', f.read(4))[0]
+    
 if __name__ == '__main__':
     options = argparse.ArgumentParser(epilog='Example: %(prog)s --sessionKey <SPLUNK SESSIONKEY>')
     options.add_argument("--sessionKey", help="The splunk session key to use")
@@ -337,8 +291,8 @@ if __name__ == '__main__':
                             org_filename = filename
                             # Here we place the dots back in
                             # And replace "!" with "_" to prevent escaping problems
-                            zipinfo.filename = re.sub('(\s)', r'.', zipinfo.filename)
-                            zipinfo.filename = re.sub('(\!)', r'_', zipinfo.filename)
+                            zipinfo.filename = re.sub(r'(\s)', r'.', zipinfo.filename)
+                            zipinfo.filename = re.sub(r'(\!)', r'_', zipinfo.filename)
                             try: 
                                 zf.extract(zipinfo, xml_dir)
                             except zipfile.BadZipfile:
@@ -346,7 +300,7 @@ if __name__ == '__main__':
                                 shutil.copy2(os.path.normpath(attachment_dir + os.sep + filename), problem_dir)
                                 continue
                         else:
-                            script_logger.critical("Skipping attachment. The zip file doesn't contain a XML file! File in attachment: " + str(file))
+                            script_logger.critical("Skipping attachment. The zip file doesn't contain a XML file! File in attachment: " + str(filename))
                     else:
                         sizeMB = zipinfo.file_size/1024/1024
                         script_logger.critical("Skipping attachement. The size of the uncompressed file is to big: " + str(sizeMB) + "MB, max size is " + str(max_decompressed_file_size) + "MB" )
@@ -362,8 +316,8 @@ if __name__ == '__main__':
                     data = gz.read()
                     # us the .gz name minus the extention
                     header_filename = file_name_split
-                    header_filename = re.sub('(\s)', r'.', header_filename)
-                    header_filename = re.sub('(\!)', r'_', header_filename)
+                    header_filename = re.sub(r'(\s)', r'.', header_filename)
+                    header_filename = re.sub(r'(\!)', r'_', header_filename)
 
                     #new_location = os.path.normpath(xml_dir + os.sep + header_filename)
                     xml_output_file = open(os.path.normpath(xml_dir + os.sep + header_filename), 'wb')

@@ -31,7 +31,7 @@ limitations under the License.
 import logging, logging.handlers
 import os
 import sys
-import ConfigParser
+import configparser
 
 import splunklib.client as client
 import splunk.entity as entity
@@ -153,7 +153,7 @@ class Splunk_Info(object):
             default_file = os.path.normpath(app_dir + os.sep + "metadata" + os.sep + "default.meta")
             local_file = os.path.normpath(app_dir + os.sep + "metadata" + os.sep + "local.meta")
         
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
     
         # check if the requested config file is in the default dir, if so read the content, else create a empty list to prevent errors
         if os.path.exists(default_file):
@@ -214,7 +214,7 @@ class Splunk_Info(object):
         else:
             local_file = os.path.normpath(app_dir + os.sep + "metadata" + os.sep + "local.meta")
             
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
     
         if os.path.exists(local_file):
             config.read(local_file)
