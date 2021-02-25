@@ -5,7 +5,7 @@ This file will contain the changes to the script files. In the script files you 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-02-25 | 4.0.0   | Arnold  | Made all scripts python3<br />Updated the Splunk SDK<br />Changed the DNS lookup to get rid of the nslookup dependency<br />Updated the custom classes to python3
+| 2021-02-25 | 4.0.0   | Arnold  | **[FIX]** Made all scripts python3<br />**[MOD]** Updated the Splunk SDK<br />**[MOD]**Changed the DNS lookup to get rid of the nslookup dependency<br />**[MOD]**Updated the custom classes to python3
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
