@@ -5,7 +5,7 @@ This file will contain the changes to the script files. In the script files you 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
+| 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports - thanks @jbouwh for reporting<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
