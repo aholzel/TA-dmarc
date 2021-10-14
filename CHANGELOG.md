@@ -5,12 +5,12 @@ This file will contain the changes to the script files. In the script files you 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-02-25 | 4.0.0   | Arnold  | **[FIX]** Made all scripts python3<br /> **[MOD]** Updated the Splunk SDK<br /> **[MOD]** Changed the DNS lookup to get rid of the nslookup dependency<br /> **[MOD]** Updated the custom classes to python3
+| 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-02-19 | 3.0.0   | Arnold  | **[MOD]** Changes to make the script python3 compatible<br />**[MOD]** Changed the way dns lookups are done, from now on pythonDNS is used<br />**[MOD]** Changed the error handling on 'problem' XMLs with a wrong first line.<br />
+| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]** dmarc-parcer.py Typo in log message<br />
 
 ## dmarc-converter.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -20,7 +20,7 @@ This file will contain the changes to the script files. In the script files you 
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-02-25 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.<br />**[MOD]** Quote use consistancy, log format consistancy
+| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
 
 # All changes
 ## General app changes
@@ -51,7 +51,8 @@ This file will contain the changes to the script files. In the script files you 
 | 2020-01-09 | 3.6.2   | Arnold  | Fixed some typo's in the python scripts.
 | 2020-01-15 | 3.6.3   | Arnold  | Fixed problem in the dmarc-converter.py script
 | 2020-08-28 | 3.7.0   | Arnold  | Changes to the dmarc-converter.py and dmarc-parser.py scripts
-| 2021-02-25 | 4.0.0   | Arnold  | Made all scripts Python3
+| 2021-02-25 | 4.0.0   | Arnold  | **[FIX]** Made all scripts python3<br /> **[MOD]** Updated the Splunk SDK<br />
+| 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -69,6 +70,7 @@ This file will contain the changes to the script files. In the script files you 
 | 2019-08-29 | 2.1     | Arnold  | **[FIX]** DKIM result was always "not_set", because that field was overwritten (set to NONE) by <br />the human_result field.<br />**[ADD]** Files that cannot be processed due to format errors are now <br />also moved to the problem dir
 | 2020-08-28 | 2.2.0   | Arnold  | **[FIX]** Changed the way how report_recorddata is getting filled by report_defaultdata 
 | 2021-02-19 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[MOD]** Changed the way dns lookups are done, from now on pythonDNS is used<br />**[MOD]** Changed the error handling on 'problem' XMLs with a wrong first line.<br />
+| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]** dmarc-parcer.py Typo in log message<br />
 
 ## dmarc-converter.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -122,3 +124,4 @@ This file will contain the changes to the script files. In the script files you 
 | 2019-03-25 | 2.6     | Arnold  | Made a list with the allowed mail subjects because dispite the RFC <br />there is a large variety of subjects used.<br />Made a check to see if there is a actual sender.
 | 2019-11-21 | 2.6.1   | Arnold  | **[FIX]** Type in the get_credentials name
 | 2021-02-25 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.<br />**[MOD]** Quote use consistancy, log format consistancy
+| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />

@@ -30,11 +30,7 @@ SOFTWARE.
 #                 The script can handle POP3, POP3 SSL, IMAP and IMAP SSL
 #
 # Version history
-# Date          Version     Author      Type    Description
-# 2021-02-19    3.0.0       Arnold      MOD     python3 compatible
-#                                       DEL     Old change log is now moved to the CHANGELOG.md file in the root
-#                                               of the app.
-#                                       MOD     Quote use consistancy, log format consistancy
+# change log is now moved to the CHANGELOG.md file in the root of the app.
 #
 ##################################################################
  
@@ -54,7 +50,7 @@ import classes.custom_logger as c_logger
 
 delete_files_after = 7 # days after which old parser files will be deleted 
 
-allowed_mail_subjects = ['report domain', 'dmarc aggregate report', 'report_domain', '[dmarc report]']
+allowed_mail_subjects = ['report domain', 'dmarc aggregate report', 'report_domain', '[dmarc report]', '[Preview] Report Domain:']
 
 #########################################
 # NO NEED TO CHANGE ANYTHING BELOW HERE #
@@ -293,14 +289,15 @@ def pop3_mailbox():
         raw_email = b'\r\n'.join(lines)
         parsed_email = email.message_from_bytes(raw_email)
         message_subject = parsed_email['Subject']
-        
+        actual_email_id = emailid + 1
+
         # Check the subject, only process the dmarc messages, they always contain one of the strings from the allowed_mail_subjects
         if any(sub in message_subject.lower() for sub in allowed_mail_subjects):
             #script_logger.debug('Message id: ' + str(emailid+1) + ', is a DMARC message, ' + str(parsed_email))
 
             # Get email sender
             sender = parsed_email['From']
-            actual_email_id = emailid + 1
+            
             # Check to see if there is an actual sender....
             if len(sender) > 0:
                 sender = str(sender[0])

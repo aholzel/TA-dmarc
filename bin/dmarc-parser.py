@@ -204,7 +204,7 @@ def process_dmarc_xml(xml_file, output='json', resolve=0, resolve_timeout=2):
                         except Exception as exception:
                             # catch the exeption and give that back (NXDOMAIN/NoAnswer/....)
                             errors = str(type(exception).__name__)
-                            script_logger.debug('There was a problems with the dns query for {0}'.format(source_ip))
+                            script_logger.debug('There was a problem with the dns query for {0}'.format(source_ip))
 
                             if errors.lower() == 'timeout':
                                 try:
