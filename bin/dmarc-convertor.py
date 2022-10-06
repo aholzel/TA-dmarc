@@ -48,6 +48,7 @@ import splunklib.client as client
 import classes.splunk_info as si
 import classes.custom_logger as c_logger
 
+__version__ = "4.0.0"
 delete_files_after = 7              # days after which old log files will be deleted 
 max_decompressed_file_size = 100    # Max size in MB that a decompressed XML may be, this to prevent gzip/zip bombs
 

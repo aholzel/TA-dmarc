@@ -52,6 +52,8 @@ from collections import defaultdict
 import classes.splunk_info as si
 import classes.custom_logger as c_logger
 
+__version__ = "3.0.1"
+
 def nested_dict(n, type):
     if n == 1:
         return defaultdict(type)

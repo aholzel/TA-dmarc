@@ -5,7 +5,7 @@ This file will contain the changes to the script files. In the script files you 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports - thanks @jbouwh for reporting<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
+| 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -20,7 +20,7 @@ This file will contain the changes to the script files. In the script files you 
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
+| 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br /> **[DEL]** removed unused modules that where imported
 
 # All changes
 ## General app changes
@@ -125,3 +125,4 @@ This file will contain the changes to the script files. In the script files you 
 | 2019-11-21 | 2.6.1   | Arnold  | **[FIX]** Type in the get_credentials name
 | 2021-02-25 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.<br />**[MOD]** Quote use consistancy, log format consistancy
 | 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
+| 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br />

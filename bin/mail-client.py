@@ -33,30 +33,37 @@ SOFTWARE.
 # change log is now moved to the CHANGELOG.md file in the root of the app.
 #
 ##################################################################
- 
-import sys
-import imaplib, email, email.header, poplib
-import os
-import errno
-import re
+
 import argparse
-import inspect
+import email
+import email.header
+import imaplib 
+import os
+import poplib
+import re
+import sys
 
 from io import StringIO
-from datetime import datetime
 
 import classes.splunk_info as si
 import classes.custom_logger as c_logger
 
+__version__ = "3.1.0"
 delete_files_after = 7 # days after which old parser files will be deleted 
 
-allowed_mail_subjects = ['report domain', 'dmarc aggregate report', 'report_domain', '[dmarc report]', '[Preview] Report Domain:']
+allowed_mail_subjects = [
+                        'report domain', 
+                        'dmarc aggregate report', 
+                        'report_domain', 
+                        '[dmarc report]', 
+                        '[Preview] Report Domain:'
+                        ]
 
 #########################################
 # NO NEED TO CHANGE ANYTHING BELOW HERE #
 #########################################
 
-script_dir = os.path.dirname(os.path.abspath(__file__))                                     # The directory of this script
+script_dir = os.path.dirname(os.path.abspath(__file__)) # The directory of this script
 
 # Get the command line arguments passed to the script
 options = argparse.ArgumentParser(epilog='Example: %(prog)s  -s mailserver.example.test -p 993 -y IMAPS -u dmarc@example.test -f inbox ')
@@ -176,7 +183,7 @@ def imap_mailbox():
         
         fetch_response, msg_data = connection.fetch(emailid, '(RFC822)')
         message = email.message_from_bytes(msg_data[0][1])
-        subject = message['Subject'] 
+        subject = str(email.header.make_header(email.header.decode_header(message['Subject']))) 
 
         if fetch_response == 'OK' and any(sub in subject.lower() for sub in allowed_mail_subjects):
             # Search for all the dmarc messages, they should always contain the string 'Report Domain' but I check
@@ -288,7 +295,15 @@ def pop3_mailbox():
 
         raw_email = b'\r\n'.join(lines)
         parsed_email = email.message_from_bytes(raw_email)
-        message_subject = parsed_email['Subject']
+        subject = str(email.header.make_header(email.header.decode_header(parsed_email['Subject'])))
+
+        # sometimes the mail subject is encoded so try to decode them
+        try:
+            message_subject = str(email.header.make_header(email.header.decode_header(subject)))
+        except:
+            script_logger.exception('Something went wrong decoding the subject. Traceback: ')
+            message_subject = subject
+            
         actual_email_id = emailid + 1
 
         # Check the subject, only process the dmarc messages, they always contain one of the strings from the allowed_mail_subjects
