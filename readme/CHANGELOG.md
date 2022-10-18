@@ -5,7 +5,7 @@ This file will contain the changes to the script files. In the script files you 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
+| 2022-10-18 | 4.1.0   | Arnold  | **[FIX]** mail-client.py for to many emails in IMAP mailbox
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -20,7 +20,7 @@ This file will contain the changes to the script files. In the script files you 
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br /> **[DEL]** removed unused modules that where imported
+| 2022-10-18 | 3.2.0   | Arnold  | **[FIX]**  Fixed problem where there where to many emails in a IMAP mailbox to fetch in 1 run.
 
 # All changes
 ## General app changes
@@ -53,6 +53,7 @@ This file will contain the changes to the script files. In the script files you 
 | 2020-08-28 | 3.7.0   | Arnold  | Changes to the dmarc-converter.py and dmarc-parser.py scripts
 | 2021-02-25 | 4.0.0   | Arnold  | **[FIX]** Made all scripts python3<br /> **[MOD]** Updated the Splunk SDK<br />
 | 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
+| 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -126,3 +127,4 @@ This file will contain the changes to the script files. In the script files you 
 | 2021-02-25 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.<br />**[MOD]** Quote use consistancy, log format consistancy
 | 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
 | 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br />
+| 2022-10-18 | 3.2.0   | Arnold  | **[FIX]**  Fixed problem where there where to many emails in a IMAP mailbox to fetch in 1 run.

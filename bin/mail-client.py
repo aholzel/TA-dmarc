@@ -48,9 +48,9 @@ from io import StringIO
 import classes.splunk_info as si
 import classes.custom_logger as c_logger
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 delete_files_after = 7 # days after which old parser files will be deleted 
-
+max_emails_per_fetch = 10000
 allowed_mail_subjects = [
                         'report domain', 
                         'dmarc aggregate report', 
@@ -169,12 +169,21 @@ def imap_mailbox():
     # Check the mailbox status
     mailbox_status = connection.status(args.folder, '(MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)')
     script_logger.debug('Mailbox status: {0}'.format(mailbox_status))
-    
-    # Search for all messages
-    response, msg_id_list = connection.search(None, 'ALL')
 
-    script_logger.debug('Message ID\'s currently in the mailbox: {0}'.format(msg_id_list))
-    msg_id_list = msg_id_list[0].split()
+    unseen_rex = re.search(r'(?:.*UNSEEN\s*)(\d+)', str(mailbox_status))
+    unseen_count = int(unseen_rex.group(1))
+    
+    # if unseen count is to high get the mails in batch mode
+    if unseen_count > max_emails_per_fetch:
+        msg_id_list = list(range(1,max_emails_per_fetch))
+        script_logger.warning('There are to many mails in the mailbox to get them all at once, only get the first {0}'.format(max_emails_per_fetch))
+    else:
+        # Search for all messages
+        try:
+            response, msg_id_list = connection.search(None, 'ALL')
+            msg_id_list = msg_id_list[0].split()
+        except Exception as e:
+            script_logger.exception('Something did\'t go as expected: {0}'.format(e))
     
     # loop through the mails in the mailbox and download the attachtments
     for emailid in msg_id_list:
@@ -224,6 +233,10 @@ def imap_mailbox():
             script_logger.info('Message id: {0}, is not a DMARC message. Message subject: {1}'.format(emailid, subject))
         else:
             script_logger.warning('Response is NOT OK, response: {0}'.format(response))
+
+        # Check if there where to many mails to process at once, if so append 1 to the end of the msg_id_list
+        if msg_id_list[-1] < unseen_count:
+            msg_id_list.append(msg_id_list[-1]+1)
 
         count +=1
     
@@ -295,21 +308,12 @@ def pop3_mailbox():
 
         raw_email = b'\r\n'.join(lines)
         parsed_email = email.message_from_bytes(raw_email)
-        subject = str(email.header.make_header(email.header.decode_header(parsed_email['Subject'])))
-
-        # sometimes the mail subject is encoded so try to decode them
-        try:
-            message_subject = str(email.header.make_header(email.header.decode_header(subject)))
-        except:
-            script_logger.exception('Something went wrong decoding the subject. Traceback: ')
-            message_subject = subject
+        message_subject = str(email.header.make_header(email.header.decode_header(parsed_email['Subject'])))
             
         actual_email_id = emailid + 1
 
         # Check the subject, only process the dmarc messages, they always contain one of the strings from the allowed_mail_subjects
         if any(sub in message_subject.lower() for sub in allowed_mail_subjects):
-            #script_logger.debug('Message id: ' + str(emailid+1) + ', is a DMARC message, ' + str(parsed_email))
-
             # Get email sender
             sender = parsed_email['From']
             
