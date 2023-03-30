@@ -5,31 +5,23 @@ This file will contain the changes to the script files. The file is split up in 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. 
-| | | | **[MOD]** Changes to comply with the new Splunk app layout guidelines.
-| | | | **[MOD]** Setup page and setup script to support the o365 fields
+| 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. <br />  **[MOD]** Changes to comply with the new Splunk app layout guidelines.<br />  **[MOD]** Setup page and setup script to support the o365 fields
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 3.1.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br /> 
-| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+| 2023-03-24 | 3.1.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br /> **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## ta-dmarc_converter.py
 This use to be the `dmarc_converter.py` script.
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 5.0.0   | Arnold  | **[ADD]** Support for downloading mails from o365. 
-| | | | **[MOD]** Adapted the script for the new Splunk app layout guidelines. 
-| | | | **[MOD]** Changed script name to comply with the new Splunk app layout guidelines.
-| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+| 2023-03-24 | 5.0.0   | Arnold  | **[ADD]** Support for downloading mails from o365. <br />  **[MOD]** Adapted the script for the new Splunk app layout guidelines. <br />  **[MOD]** Changed script name to comply with the new Splunk app layout guidelines.<br /> **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 3.3.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. 
-| | | | **[MOD]** Made a list for the allowed content types to make it easier to change.
-| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+| 2023-03-24 | 3.3.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br />  **[MOD]** Made a list for the allowed content types to make it easier to change.<br />  **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## mail-o365.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -40,8 +32,7 @@ This use to be the `dmarc_converter.py` script.
 This use to be the `setup_handler.py` script.
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 2.0.0   | Arnold  | **[ADD]** Added the o365 fields to the setup page
-| | | | **[MOD]** Removed the last hardcoded name of the app, the app name is now fully based on the directory name.
+| 2023-03-24 | 2.0.0   | Arnold  | **[ADD]** Added the o365 fields to the setup page<br />  **[MOD]** Removed the last hardcoded name of the app, the app name is now fully based on the directory name.
 
 # All changes
 ## General app changes
