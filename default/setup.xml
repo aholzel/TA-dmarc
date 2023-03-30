@@ -1,9 +1,8 @@
 <setup>
-
     <block title="TA-dmarc configuration page" />
 
     <block title="Don't download mails" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
-        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: If you check this box you need to either place the zip/gz files in the "&lt;&lt;APPDIR&gt;&gt;/logs/attach_raw/" directory or the xml files in the "&lt;&lt;APPDIR&gt;&gt;/logs/dmarc_xml/" directory manualy &lt;/i&gt;</text>
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;: If you check this box you need to either place the zip/gz files in the "&lt;&lt;APPDIR&gt;&gt;/logs/attach_raw/" directory or the xml files in the "&lt;&lt;APPDIR&gt;&gt;/logs/dmarc_xml/" directory manually &lt;/i&gt;</text>
         <input field="skip_mail_download">
             <label>Don't download mails</label>
             <type>bool</type>
@@ -15,14 +14,16 @@
             <label>FQDN or IP of the mailserver</label>
             <type>text</type>
         </input>
+        <text>If you want to use o365 this field can be empty</text>
     
         <input field="mailserver_port">
             <label>Port to connect</label>
             <type>text</type>
         </input>
+        <text>If you want to use o365 this field can be empty</text>
         
         <input field="mailserver_protocol">
-            <label>Protocol to use (POP3/POP3S/IMAP/IMAPS)</label>
+            <label>Protocol to use (POP3/POP3S/IMAP/IMAPS/o365)</label>
             <type>text</type>
         </input>
         
@@ -44,7 +45,38 @@
             <label>Password</label>
             <type>password</type>
         </input>
+        <text>If you want to use o365 this field can be empty</text>
     </block>    
+    
+    <block title="Microsoft o365 connection information" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <input field="o365_client_id">
+            <label>Client ID</label>
+            <type>text</type>
+        </input>
+
+        <input field="o365_tenant_id">
+            <label>Tenant ID</label>
+            <type>text</type>
+        </input>
+
+        <input field="o365_client_secret">
+            <label>Client Secret</label>
+            <type>password</type>
+        </input>
+
+        <text>&lt;i&gt;&lt;b&gt;Note&lt;/b&gt;:Mail actions are (for now) only available for o365</text>
+        <input field="mailserver_action">
+            <label>Action</label>
+            <type>text</type>
+        </input>
+        <text>Action to perform on the mail when done, options are: "move" to move to a folder (default); "delete" to delete the mail; "mark_read" to just mark the mail as read </text>
+
+        <input field="mailserver_moveto">
+            <label>Move to folder</label>
+            <type>text</type>
+        </input>
+        <text>Folder to move the mail to. The following variabels can be used: "[YEAR]", "[MONTH]", "[DAY]", "[WEEK]" (without the quotes and in &lt;b&gt;upper case!&lt;/b&gt;) to create dynamic folders. Example: Inbox/done/[YEAR]/week_[WEEK] </text>
+    </block>
     
     <block title="Output options" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
         <text>&lt;b&gt;Set the output format for the dmarc log&lt;/b&gt;</text>
@@ -72,4 +104,3 @@
     </block>
  
 </setup>
-

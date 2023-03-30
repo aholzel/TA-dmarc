@@ -1,26 +1,47 @@
 # CHANGELOG
-This file will contain the changes to the script files. In the script files you will only find th current major version change log. The file is split up in two parts, to make it easier to find the latest changes. The top part contains the latest changes per script and in general for the app. The bottom part contains all the changes.
+This file will contain the changes to the script files. The file is split up in two parts, to make it easier to find the latest changes. The top part contains the latest changes per script and in general for the app. The bottom part contains all the changes.
 
 # Latest version:
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2022-10-18 | 4.1.0   | Arnold  | **[FIX]** mail-client.py for to many emails in IMAP mailbox
+| 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. 
+| | | | **[MOD]** Changes to comply with the new Splunk app layout guidelines.
+| | | | **[MOD]** Setup page and setup script to support the o365 fields
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-10-14 | 3.0.1   | Arnold  | **[FIX]** dmarc-parcer.py Typo in log message<br />
+| 2023-03-24 | 3.1.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br /> 
+| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
-## dmarc-converter.py
+## ta-dmarc_converter.py
+This use to be the `dmarc_converter.py` script.
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2021-02-19 | 4.0.0   | Arnold  | **[MOD]** Changes in the way the size of a uncompressed file is checked.<br />**[MOD]** Changed everything to Python3 <br />**[DEL]** Old change log is now moved to the CHANGELOG.md file in the root of the app.
+| 2023-03-24 | 5.0.0   | Arnold  | **[ADD]** Support for downloading mails from o365. 
+| | | | **[MOD]** Adapted the script for the new Splunk app layout guidelines. 
+| | | | **[MOD]** Changed script name to comply with the new Splunk app layout guidelines.
+| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2022-10-18 | 3.2.0   | Arnold  | **[FIX]**  Fixed problem where there where to many emails in a IMAP mailbox to fetch in 1 run.
+| 2023-03-24 | 3.3.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. 
+| | | | **[MOD]** Made a list for the allowed content types to make it easier to change.
+| | | | **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+
+## mail-o365.py
+| Date       | Version | Author  | **[Type]** Description                                                                |
+|:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
+| 2023-03-24 | 1.0.0   | Arnold  | **[NEW]** initial version
+
+## ta-dmarc_setup.py 
+This use to be the `setup_handler.py` script.
+| Date       | Version | Author  | **[Type]** Description                                                                |
+|:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
+| 2023-03-24 | 2.0.0   | Arnold  | **[ADD]** Added the o365 fields to the setup page
+| | | | **[MOD]** Removed the last hardcoded name of the app, the app name is now fully based on the directory name.
 
 # All changes
 ## General app changes
@@ -54,6 +75,7 @@ This file will contain the changes to the script files. In the script files you 
 | 2021-02-25 | 4.0.0   | Arnold  | **[FIX]** Made all scripts python3<br /> **[MOD]** Updated the Splunk SDK<br />
 | 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
 | 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
+| 2022-10-18 | 4.1.0   | Arnold  | **[FIX]** mail-client.py for to many emails in IMAP mailbox
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -128,3 +150,17 @@ This file will contain the changes to the script files. In the script files you 
 | 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
 | 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br />
 | 2022-10-18 | 3.2.0   | Arnold  | **[FIX]**  Fixed problem where there where to many emails in a IMAP mailbox to fetch in 1 run.
+
+## ta-dmarc_setup.py 
+This use to be the `setup_handler.py` script.
+| Date       | Version | Author  | **[Type]** Description                                                                |
+|:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
+| 2017-05-17 | 1.0.0   | Arnold  | initial version
+| 2017-12-14 | 1.1.0   | Arnold  | Added comments to make clear what is done where (and why)
+| | | | Added this change log
+| | | | Added logging to the app log file.
+| 2017-12-15 | 1.2.0   | Arnold  | Changed all the path variables so that is doesn't matter where this script is placed
+| | | | directly in the /bin dir or in /bin/other/dir 
+| 2017-12-28 | 1.3.0   | Arnold  | Made changes to the custom config file name to make it the same as the app name
+| 2018-05-07 | 1.4.0   | Arnold  | Added the output and resolve_ips options
+| | | | Replaced hard reference to the app name in the connection string to the "app_name" variable
