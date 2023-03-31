@@ -5,12 +5,12 @@ This file will contain the changes to the script files. The file is split up in 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. <br />  **[MOD]** Changes to comply with the new Splunk app layout guidelines.<br />  **[MOD]** Setup page and setup script to support the o365 fields
+| 2023-03-31 | 5.0.1   | Arnold  | **[FIX]** Minor typo fix in the `dmarc-parser.py`
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 3.1.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br /> **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+| 2023-03-31 | 3.1.1   | Arnold  | **[FIX]** Typo fix
 
 ## ta-dmarc_converter.py
 This use to be the `dmarc_converter.py` script.
@@ -67,6 +67,7 @@ This use to be the `setup_handler.py` script.
 | 2021-10-14 | 4.0.1   | Arnold  | **[FIX]** mail-client.py referenced before assignment error<br />**[ADD]** Subject for Microsoft DMARC reports<br />**[FIX]** dmarc-parcer.py Typo in log message<br />
 | 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
 | 2022-10-18 | 4.1.0   | Arnold  | **[FIX]** mail-client.py for to many emails in IMAP mailbox
+| 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. <br />  **[MOD]** Changes to comply with the new Splunk app layout guidelines.<br />  **[MOD]** Setup page and setup script to support the o365 fields
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -85,6 +86,7 @@ This use to be the `setup_handler.py` script.
 | 2020-08-28 | 2.2.0   | Arnold  | **[FIX]** Changed the way how report_recorddata is getting filled by report_defaultdata 
 | 2021-02-19 | 3.0.0   | Arnold  | **[MOD]** Changed everything to Python3 <br />**[MOD]** Changed the way dns lookups are done, from now on pythonDNS is used<br />**[MOD]** Changed the error handling on 'problem' XMLs with a wrong first line.<br />
 | 2021-10-14 | 3.0.1   | Arnold  | **[FIX]** dmarc-parcer.py Typo in log message<br />
+| 2023-03-24 | 3.1.1   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br /> **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## dmarc-converter.py
 | Date       | Version | Author  | **[Type]** Description                                                                |

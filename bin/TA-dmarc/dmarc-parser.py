@@ -51,7 +51,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..
 from classes import splunk_info as si
 from classes import custom_logger as c_logger
 
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 __author__ = 'Arnold Holzel'
 __license__ = 'Apache License 2.0'
 
@@ -113,7 +113,7 @@ def process_dmarc_xml(xml_file, output='json', resolve=0, resolve_timeout=2):
             source_file.close()
             
             if line_number:
-                script_logger.debug(f"Problem line: {s_lines[line_number-1]})"
+                script_logger.debug(f"Problem line: {s_lines[line_number-1]}")
                 del s_lines[line_number-1]
 
             with open(xml_file, 'w+') as target_file:
