@@ -5,7 +5,7 @@ This file will contain the changes to the script files. The file is split up in 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-31 | 5.0.1   | Arnold  | **[FIX]** Minor typo fix in the `dmarc-parser.py`
+| 2023-04-04 | 5.0.2   | Arnold  | **[FIX]** Put the `lib` dir back that because of .gitignore didn't made it in the previous version.
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -26,7 +26,7 @@ This use to be the `dmarc_converter.py` script.
 ## mail-o365.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 1.0.0   | Arnold  | **[NEW]** initial version
+| 2023-03-24 | 1.1.0   | Arnold  | **[FIX]** Not all folders where reviewed when checking if a folder already existed
 
 ## ta-dmarc_setup.py 
 This use to be the `setup_handler.py` script.
@@ -68,6 +68,7 @@ This use to be the `setup_handler.py` script.
 | 2022-10-06 | 4.0.2   | Arnold  | **[FIX]** mail-client.py mail subject decoding <br />**[ADD]** `__version__` in all scripts
 | 2022-10-18 | 4.1.0   | Arnold  | **[FIX]** mail-client.py for to many emails in IMAP mailbox
 | 2023-03-25 | 5.0.0   | Arnold  | **[NEW]** Support for MS GRAPH API, to support Microsoft O365. <br />  **[MOD]** Changes to comply with the new Splunk app layout guidelines.<br />  **[MOD]** Setup page and setup script to support the o365 fields
+| 2023-03-31 | 5.0.1   | Arnold  | **[FIX]** Minor typo fix in the `dmarc-parser.py`
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -149,11 +150,12 @@ This use to be the `setup_handler.py` script.
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
 | 2017-05-17 | 1.0.0   | Arnold  | initial version
-| 2017-12-14 | 1.1.0   | Arnold  | Added comments to make clear what is done where (and why)
-| | | | Added this change log
-| | | | Added logging to the app log file.
-| 2017-12-15 | 1.2.0   | Arnold  | Changed all the path variables so that is doesn't matter where this script is placed
-| | | | directly in the /bin dir or in /bin/other/dir 
+| 2017-12-14 | 1.1.0   | Arnold  | Added comments to make clear what is done where (and why)<br />Added this change log<br />Added logging to the app log file.
+| 2017-12-15 | 1.2.0   | Arnold  | Changed all the path variables so that is doesn't matter where this script is placed<br />directly in the /bin dir or in /bin/other/dir 
 | 2017-12-28 | 1.3.0   | Arnold  | Made changes to the custom config file name to make it the same as the app name
-| 2018-05-07 | 1.4.0   | Arnold  | Added the output and resolve_ips options
-| | | | Replaced hard reference to the app name in the connection string to the "app_name" variable
+| 2018-05-07 | 1.4.0   | Arnold  | Added the output and resolve_ips options<br />Replaced hard reference to the app name in the connection string to the "app_name" variable
+
+## mail-o365.py
+| Date       | Version | Author  | **[Type]** Description                                                                |
+|:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
+| 2023-03-24 | 1.0.0   | Arnold  | **[NEW]** initial version
