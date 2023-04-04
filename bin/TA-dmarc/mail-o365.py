@@ -47,7 +47,7 @@ import msal
 from classes import splunk_info as si
 from classes import custom_logger as c_logger
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = 'Arnold Holzel'
 __license__ = 'Apache License 2.0'
 
@@ -201,8 +201,8 @@ def get_folder_id(folder_name, token, parent_folder_id=None):
     """
     folder_id = None
 
-    parent_endpoint = f"{FOLDER_ENDPOINT}?includeHiddenFolders=true"
-    child_endpoint = f"{FOLDER_ENDPOINT}{parent_folder_id}/childFolders"
+    parent_endpoint = f"{FOLDER_ENDPOINT}?includeHiddenFolders=true$top=1000"
+    child_endpoint = f"{FOLDER_ENDPOINT}{parent_folder_id}/childFolders?$top=1000"
 
     if '/' in folder_name:
         # look for a nested folder, get the first folder to look for
@@ -213,14 +213,14 @@ def get_folder_id(folder_name, token, parent_folder_id=None):
             
             if folder_data is not None:
                 for folder_info in folder_data:
-                    if folder_info['displayName'] == folder_list[0]:
+                    if folder_info['displayName'].lower().strip() == folder_list[0].lower().strip():
                         folder_id = f"/{folder_info['id']}"
                         return get_folder_id(folder_list[1], token, folder_id)
         else:
             folder_data = get_request(child_endpoint, token)
 
             for folder_info in folder_data:
-                if folder_info['displayName'] == folder_list[0]:
+                if folder_info['displayName'].lower().strip() == folder_list[0].lower().strip():
                     folder_id = f"/{folder_info['id']}"
                     return get_folder_id(folder_list[1], token, folder_id)
 
@@ -231,14 +231,14 @@ def get_folder_id(folder_name, token, parent_folder_id=None):
             
             if folder_data is not None:
                 for folder_info in folder_data:
-                    if folder_info['displayName'].lower() == folder_name.lower():
+                    if folder_info['displayName'].lower().strip() == folder_name.lower().strip():
                         folder_id = f"/{folder_info['id']}"
                         break
         else:
             folder_data = get_request(child_endpoint, token)
             
             for folder_info in folder_data:
-                if folder_info['displayName'].lower() == folder_name.lower():
+                if folder_info['displayName'].lower().strip() == folder_name.lower().strip():
                     folder_id = f"/{folder_info['id']}"
                     return folder_id
         
@@ -258,8 +258,18 @@ def create_folder(folder_name, token, parent_folder_id=None, root_folder=1):
     OUTPUT:
     folder_id           | string    | The folder_id of the either just created folder or the already existing one
     """
+    # First check if the folder doesn't already exists
+    folder_exists = get_folder_id(folder_name, token)
+
+    if folder_exists is not None:
+        script_logger.debug(f"The folder (path) '{folder_name}' already exists.")
+        return folder_exists
+    else:
+        script_logger.debug(f"The folder (path) '{folder_name}' doesn't exist.")
+
     # split the folder to create in two to work with
     folder_list = folder_name.split('/', 1)
+    script_logger.debug(f"Folder to create: '{folder_name}'")
 
     if parent_folder_id is None:
         folder_id = get_folder_id(folder_list[0], token)
@@ -288,7 +298,7 @@ def create_folder(folder_name, token, parent_folder_id=None, root_folder=1):
         create_request = requests.post(F_ENDPOINT, data=content, headers=headers)
 
         if create_request.status_code != 201:
-            print(f"something went wrong creating the folder: {json.loads(create_request.content)['error']['message']}")
+            script_logger.error(f"Something went wrong creating the folder: {json.loads(create_request.content)['error']['message']}")
             exit(1)
         
         # get the ID of the just created folder, based on the response
