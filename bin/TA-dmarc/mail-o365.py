@@ -47,7 +47,7 @@ import msal
 from classes import splunk_info as si
 from classes import custom_logger as c_logger
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = 'Arnold Holzel'
 __license__ = 'Apache License 2.0'
 
@@ -86,6 +86,10 @@ options.add_argument('-f', '--folder', help='mail folder from which the mail to 
 options.add_argument('-a', '--action', help='The action to take when a mail is processed; move/delete/mark_read', default='mark_read')
 options.add_argument('-m', '--move_to', help='The folder to move emails to the following variables can be used \
     [year] [month] [day] [ week] Example: Inbox/done/[year]/week_[week] will become Inbox/done/2023/week_03', default='Inbox/done/[year]/week_[week]')
+options.add_argument('--proxy', action='store_true', help='Use a proxy server to connect to the internet' )
+options.add_argument('-x', '--proxy_server', help='The proxy server + port to use. IE: https://10.20.30.40:5060')
+options.add_argument('-y', '--proxy_user', help='The user to authenticate to the proxy to if needed', default='default_None')
+options.add_argument('-z', '--proxy_pwd', help='The password for the proxy user if needed', default='default_None')
 options.add_argument('-v', '--verbose', action='store_true', help='enable verbose logging on the CLI')
 options.add_argument('--sessionKey', help='The splunk session key to use')
 args = options.parse_args()
@@ -144,6 +148,11 @@ if args.use_conf_file:
     mailfolder = splunk_info.get_config(custom_conf_file, 'main', 'mailserver_mailboxfolder')
     action = splunk_info.get_config(custom_conf_file, 'main', 'mailserver_action')
     move_to_folder = splunk_info.get_config(custom_conf_file, 'main', 'mailserver_moveto')
+
+    proxy_use = splunk_info.get_config(custom_conf_file, 'main', 'proxy_use')
+    proxy_server = splunk_info.get_config(custom_conf_file, 'main', 'proxy_server')
+    proxy_username = splunk_info.get_config(custom_conf_file, 'main', 'proxy_username')
+    proxy_pwd = splunk_info.get_credentials(proxy_username)
 else:
     client_id = args.client_id
     tenant_id = args.tenant_id
@@ -152,6 +161,36 @@ else:
     mailfolder = args.folder
     action = args.action
     move_to_folder = args.move_to
+
+    if args.proxy:
+        proxy_use = True
+        proxy_server = args.proxy_server
+        proxy_username = args.proxy_user
+        proxy_pwd = args.proxy_pwd
+
+if proxy_use or proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
+    script_logger.debug(f"A proxy needs to be used to connect to internet. The following will be used: {proxy_server}")
+    proxy_use = True
+    proxy_regex = re.search(r"(?:^([htps]*)(?=[:]+)(?:\:\/\/)|^)(.*)", proxy_server)
+
+    if not proxy_regex.group(1):
+        script_logger.warning(f"No schema provided with the proxy_server:{proxy_server} will assume HTTP, please adjust the config via the setup page!")
+
+    if proxy_username != 'default_None' and proxy_username is not None and proxy_pwd != 'default_None' and proxy_pwd is not None:
+        # there is a proxy user name and password configured
+        if proxy_regex.group(1):
+            # the url has a schema provided rebuild the proxy_server variable with the username and password
+            proxy_server = f"{proxy_regex.group(1)}://{proxy_username}:{proxy_pwd}@{proxy_regex.group(2)}"
+        else:
+            proxy_server = f"http://{proxy_username}:{proxy_pwd}@{proxy_regex.group(2)}"
+    elif proxy_username != 'default_None' and proxy_username is not None:
+        if proxy_regex.group(1):
+            # the url has a schema provided rebuild the proxy_server variable with the username and password
+            proxy_server = f"{proxy_regex.group(1)}://{proxy_username}@{proxy_regex.group(2)}"
+        else:
+            proxy_server = f"http://{proxy_username}@{proxy_regex.group(2)}"
+
+    proxies = { 'http': proxy_server, 'https': proxy_server }
 
 if client_id is None or tenant_id is None or client_secret is None or user is None:
     script_logger.error("Not all the needed o365 fields are configured or accessable.")
@@ -180,7 +219,15 @@ def get_request(endpoint, token):
         return None
     
     headers = { 'Authorization': f'Bearer {token}' }
-    response = requests.get(endpoint, headers=headers)
+    
+    try:
+        if proxy_use:
+            response = requests.get(endpoint, headers=headers, proxies=proxies)
+        else:
+            response = requests.get(endpoint, headers=headers)
+    except Exception as exception:
+        script_logger.exception(f"Connection error {type(exception).__name__}; ")
+
 
     if response.status_code != 200:
         return None
@@ -294,8 +341,13 @@ def create_folder(folder_name, token, parent_folder_id=None, root_folder=1):
         else:
             # this folder needs to be created below an already existing folder
             F_ENDPOINT = f"{FOLDER_ENDPOINT}{parent_folder_id}/childFolders"
-        
-        create_request = requests.post(F_ENDPOINT, data=content, headers=headers)
+        try:
+            if proxy_use:
+                create_request = requests.post(F_ENDPOINT, data=content, headers=headers, proxies=proxies)
+            else:
+                create_request = requests.post(F_ENDPOINT, data=content, headers=headers)
+        except Exception as exception:
+            script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
         if create_request.status_code != 201:
             script_logger.error(f"Something went wrong creating the folder: {json.loads(create_request.content)['error']['message']}")
@@ -382,15 +434,27 @@ try:
                             move_content = f"{{ 'destinationId' : '{move_folder_id.lstrip('/')}' }}"
                             move_headers = { 'Authorization' : f"Bearer {result['access_token']}", 'Accept' : 'application/json', 'Content-Type' : 'application/json' }
                             
-                            move_request = requests.post(f"{MESSAGE_ENDPOINT}/{message['id']}/move", data=move_content, headers=move_headers)
+                            try:
+                                if proxy_use:
+                                    move_request = requests.post(f"{MESSAGE_ENDPOINT}/{message['id']}/move", data=move_content, headers=move_headers, proxies=proxies)
+                                else:
+                                    move_request = requests.post(f"{MESSAGE_ENDPOINT}/{message['id']}/move", data=move_content, headers=move_headers)
+                            except Exception as exception:
+                                script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
                             if move_request.status_code != 201:
                                 script_logger.error(f"HTTP {move_request.status_code} recieved. Error message: {json.loads(move_request.content)['error']['message']}")
                         elif action.lower() == "delete":
                             # delete the message
                             delete_header = { 'Authorization': f"Bearer {result['access_token']}" }
-
-                            delete_request = requests.delete(f"{MESSAGE_ENDPOINT}/{message['id']}", headers=delete_header)
+                            
+                            try:
+                                if proxy_use:
+                                    delete_request = requests.delete(f"{MESSAGE_ENDPOINT}/{message['id']}", headers=delete_header, proxies=proxies)
+                                else:
+                                    delete_request = requests.delete(f"{MESSAGE_ENDPOINT}/{message['id']}", headers=delete_header)
+                            except Exception as exception:
+                                script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
                             if delete_request.status_code != 204:
                                 script_logger.error(f"HTTP {delete_request.status_code} recieved. Error message: {json.loads(delete_request.content)['error']['message']}")
@@ -402,7 +466,13 @@ try:
                             mark_content = f"{{ 'isRead' : 'True' }}"
                             mark_headers = { 'Authorization' : f"Bearer {result['access_token']}", 'Accept' : 'application/json', 'Content-Type' : 'application/json' }
 
-                            mark_request = requests.patch(f"{MESSAGE_ENDPOINT}/{message['id']}", data=mark_content, headers=mark_headers)
+                            try:
+                                if proxy_use:
+                                    mark_request = requests.patch(f"{MESSAGE_ENDPOINT}/{message['id']}", data=mark_content, headers=mark_headers, proxies=proxies)
+                                else:
+                                    mark_request = requests.patch(f"{MESSAGE_ENDPOINT}/{message['id']}", data=mark_content, headers=mark_headers)
+                            except Exception as exception:
+                                script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
                             if mark_request.status_code != 201:
                                 script_logger.error(f"HTTP {mark_request.status_code} recieved. Error message: {json.loads(mark_request.content)['error']['message']}")

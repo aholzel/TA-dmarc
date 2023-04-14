@@ -78,6 +78,29 @@
         <text>Folder to move the mail to. The following variabels can be used: "[YEAR]", "[MONTH]", "[DAY]", "[WEEK]" (without the quotes and in &lt;b&gt;upper case!&lt;/b&gt;) to create dynamic folders. Example: Inbox/done/[YEAR]/week_[WEEK] </text>
     </block>
     
+    <block title="Proxy options" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
+        <input field="proxy_use">
+            <label>Use a proxy to connect to the internet (o365)</label>
+            <type>bool</type>
+        </input>
+
+        <input field="proxy_server">
+            <label>Proxy server</label>
+            <type>text</type>
+        </input>
+        <text>Please also provide the port to connect on in the url. Example: http(s)://192.168.123.123:8080 OR http(s)://proxy.domain.tld:8080</text>
+
+        <input field="proxy_username">
+            <label>Proxy user (optional)</label>
+            <type>text</type>
+        </input>
+
+        <input field="proxy_pwd">
+            <label>Proxy password (optional)</label>
+            <type>password</type>
+        </input>
+    </block>
+
     <block title="Output options" endpoint="ta-dmarc/ta-dmarc_configure/" entity="main">
         <text>&lt;b&gt;Set the output format for the dmarc log&lt;/b&gt;</text>
         <input field="output">

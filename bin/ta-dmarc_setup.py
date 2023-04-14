@@ -32,11 +32,11 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
 
 from splunk import admin as admin
-from  splunklib import client as client
+from splunklib import client as client
 
 from classes import custom_logger as c_logger
 
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 __author__ = 'Arnold Holzel'
 __license__ = 'Apache License 2.0'
 
@@ -60,11 +60,12 @@ class ConfigApp(admin.MConfigHandler):
             for arg in [
                 'mailserver_host', 'mailserver_port', 'mailserver_protocol', 'mailserver_mailboxfolder', 
                 'mailserver_user', 'mailserver_pwd', 'o365_client_id', 'o365_tenant_id', 'o365_client_secret', 
-                'mailserver_action', 'mailserver_moveto', 'skip_mail_download', 'log_level',  'output', 'resolve_ips'
+                'mailserver_action', 'mailserver_moveto', 'skip_mail_download', 'log_level',  'output', 'resolve_ips',
+                'proxy_use', 'proxy_server', 'proxy_username', 'proxy_pwd'
             ]:
                 self.supportedArgs.addOptArg(arg)
 
-    # Read the inital values of the options from the file ta-dmarc.conf and place them in the setup page.
+    # Read the inital values of the options from the file <<app_name>>.conf and place them in the setup page.
     # If no setup has been done before read from the app default file
     # If the setup has been done before read from the app local file first and if a field has no value there
     # fallback to the default values
@@ -86,10 +87,10 @@ class ConfigApp(admin.MConfigHandler):
         if confDict is not None:
             for stanza, settings in confDict.items():
                 for key, val in settings.items():
-                    if (key in ['mailserver_host', 'mailserver_port', 'mailserver_protocol', 'mailserver_mailboxfolder', 'mailserver_user', 'mailserver_pwd', 'output', 'o365_client_id', 'o365_tenant_id', 'o365_client_secret', 'mailserver_action', 'mailserver_moveto'] and val in [None, '', 'configured']):
+                    if (key in ['mailserver_host', 'mailserver_port', 'mailserver_protocol', 'mailserver_mailboxfolder', 'mailserver_user', 'mailserver_pwd', 'output', 'o365_client_id', 'o365_tenant_id', 'o365_client_secret', 'mailserver_action', 'mailserver_moveto', 'proxy_server', 'proxy_username', 'proxy_pwd'] and val in [None, '', 'configured']):
                         val = ''
                         
-                    if key in ['skip_mail_download', 'resolve_ips']:
+                    if key in ['skip_mail_download', 'resolve_ips', 'proxy_use']:
                         if int(val) == 1 or str(val.lower()) == "true" :
                             val = '1'
                         else:
@@ -126,10 +127,10 @@ class ConfigApp(admin.MConfigHandler):
                 script_logger.exception("An error occurred connecting to splunkd")
                 
         # Make two lists with field names, 
-        # one with the text fields, minus the username, password and o365 fields, one with the boolean fields. 
+        # one with the text fields, minus the usernames, passwords and o365 fields, one with the boolean fields. 
         # this is so we don't have to make a if else loop for each field.
-        text_fields_list = [ 'mailserver_host', 'mailserver_port', 'mailserver_protocol', 'mailserver_mailboxfolder', 'output', 'mailserver_action', 'mailserver_moveto' ]
-        boolean_fields_list = [ 'skip_mail_download', 'resolve_ips' ]
+        text_fields_list = [ 'mailserver_host', 'mailserver_port', 'mailserver_protocol', 'mailserver_mailboxfolder', 'output', 'mailserver_action', 'mailserver_moveto', 'proxy_server' ]
+        boolean_fields_list = [ 'skip_mail_download', 'resolve_ips', 'proxy_use' ]
         
         args_data = self.callerArgs.data
         
@@ -148,6 +149,7 @@ class ConfigApp(admin.MConfigHandler):
         # Check the username, password and o365 fields if they are None or empty
         # set a variable so we know we don't have to store them in the Splunk
         # credential store later.
+        ############ Mailbox credentials ############
         if args_data['mailserver_user'][0] in [None, '']:
             mailserver_user = 0
             args_data['mailserver_user'][0] = 'None'
@@ -161,6 +163,21 @@ class ConfigApp(admin.MConfigHandler):
             mailserver_pwd = args_data['mailserver_pwd'][0]
             args_data['mailserver_pwd'][0] = 'configured'
         
+        ############ Proxy credentials ############
+        if args_data['proxy_username'][0] in [None, '']:
+            proxy_username = 0
+            args_data['proxy_username'][0] = 'None'
+        else:
+            proxy_username = args_data['proxy_username'][0]
+        
+        if args_data['proxy_pwd'][0] in [None, '', 'configured']:
+            proxy_pwd = 0
+            args_data['proxy_pwd'][0] = ''
+        else:
+            proxy_pwd = args_data['proxy_pwd'][0]
+            args_data['proxy_pwd'][0] = 'configured'
+        
+        ############ o365 credentials ############
         if args_data['o365_client_id'][0] in [None, '']:
             o365_client_id = 0
             args_data['o365_client_id'][0] = 'None'
@@ -196,7 +213,7 @@ class ConfigApp(admin.MConfigHandler):
         
         # write everything to the custom config file
         self.writeConf(app_name.lower(), 'main', args_data)
-          
+
         # Store the username and password if they are not empty
         if mailserver_user != 0 and mailserver_pwd != 0:
             try:
@@ -210,8 +227,9 @@ class ConfigApp(admin.MConfigHandler):
                 service.storage_passwords.create(mailserver_pwd, mailserver_user)
 
             except Exception:
-                script_logger.exception("An error occurred updating user credentials. Please ensure your user account has admin_all_objects and/or list_storage_passwords capabilities.")
+                script_logger.exception("An error occurred updating mailbox credentials. Please ensure your user account has admin_all_objects and/or list_storage_passwords capabilities.")
 
+        # Store the o365 credentials if they are not empty
         if o365_client_id != 0 and o365_client_secret != 0:
             try:
                 for storage_password in service.storage_passwords:
@@ -222,6 +240,21 @@ class ConfigApp(admin.MConfigHandler):
                 service.storage_passwords.create(o365_client_secret, o365_client_id)
             except Exception:
                 script_logger.exception("An error occurred updating o365 credentials. Please ensure your user account has admin_all_objects and/or list_storage_passwords capabilities.")
+        
+        # Store the proxy credentials if they are not empty
+        if proxy_username != 0 and proxy_pwd != 0:
+            try:
+                # If the credential already exists, delete it.
+                for storage_password in service.storage_passwords:
+                    if storage_password.username == proxy_username:
+                        service.storage_passwords.delete(username=storage_password.username)
+                        break
+
+                # Create the credentials 
+                service.storage_passwords.create(proxy_pwd, proxy_username)
+
+            except Exception:
+                script_logger.exception("An error occurred updating mailbox credentials. Please ensure your user account has admin_all_objects and/or list_storage_passwords capabilities.")
 
 admin.init(ConfigApp, admin.CONTEXT_NONE)
 
