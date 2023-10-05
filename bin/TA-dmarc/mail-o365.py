@@ -168,7 +168,7 @@ else:
         proxy_username = args.proxy_user
         proxy_pwd = args.proxy_pwd
 
-if proxy_use or proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
+if proxy_use is True or proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
     script_logger.debug(f"A proxy needs to be used to connect to internet. The following will be used: {proxy_server}")
     proxy_use = True
     proxy_regex = re.search(r"(?:^([htps]*)(?=[:]+)(?:\:\/\/)|^)(.*)", proxy_server)
@@ -191,6 +191,8 @@ if proxy_use or proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() 
             proxy_server = f"http://{proxy_username}@{proxy_regex.group(2)}"
 
     proxies = { 'http': proxy_server, 'https': proxy_server }
+else:
+    proxy_use = False
 
 if client_id is None or tenant_id is None or client_secret is None or user is None:
     script_logger.error("Not all the needed o365 fields are configured or accessable.")

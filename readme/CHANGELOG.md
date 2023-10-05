@@ -5,7 +5,7 @@ This file will contain the changes to the script files. The file is split up in 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-04-14 | 5.1.0   | Arnold  | **[ADD]** Proxy support for the o365 script.<br />**[MOD]** Setup page to add proxy config.
+| 2023-10-05 | 5.1.1   | Arnold  | **[FIX]** Proxy problems with the o365 script.<br />**[FIX]** Wrong double quote in `mail-client.py`
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -21,12 +21,12 @@ This use to be the `dmarc_converter.py` script.
 ## mail-client.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-03-24 | 3.3.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br />  **[MOD]** Made a list for the allowed content types to make it easier to change.<br />  **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
+| 2023-10-05 | 3.3.1   | Arnold  | **[FIX]** Removed wrong double quote
 
 ## mail-o365.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2023-04-14 | 1.2.0   | Arnold  | **[ADD]** Made the script proxy aware
+| 2023-10-05 | 1.2.1   | Arnold  | **[FIX]** Proxy problems
 
 ## ta-dmarc_setup.py 
 This use to be the `setup_handler.py` script.
@@ -71,6 +71,7 @@ This use to be the `setup_handler.py` script.
 | 2023-03-31 | 5.0.1   | Arnold  | **[FIX]** Minor typo fix in the `dmarc-parser.py`
 | 2023-04-04 | 5.0.2   | Arnold  | **[FIX]** Put the `lib` dir back that because of .gitignore didn't made it in the previous version.
 | 2023-04-05 | 5.0.3   | Arnold  | **[MOD]** Added `[trigger]` stanza to `app.conf` to prevent unnecessary restart after install
+| 2023-04-14 | 5.1.0   | Arnold  | **[ADD]** Proxy support for the o365 script.<br />**[MOD]** Setup page to add proxy config.
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -146,12 +147,14 @@ This use to be the `setup_handler.py` script.
 | 2021-10-14 | 3.0.1   | Arnold  | **[FIX]**  referenced before assignment error<br />**[ADD]** Microsoft is sending DMARC report (finally!) with a different subject... added this to the allowed subject list<br />
 | 2022-10-06 | 3.1.0   | Arnold  | **[FIX]**  The mail subject is now always decoded before furter processing.<br />
 | 2022-10-18 | 3.2.0   | Arnold  | **[FIX]**  Fixed problem where there where to many emails in a IMAP mailbox to fetch in 1 run.
+| 2023-03-24 | 3.3.0   | Arnold  | **[MOD]** Adapted the script for the new Splunk app layout. <br />  **[MOD]** Made a list for the allowed content types to make it easier to change.<br />  **[MOD]** Changed all the logging strings to python3 f-strings to make them more readable.
 
 ## mail-o365.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
 | 2023-03-24 | 1.0.0   | Arnold  | **[NEW]** initial version
 | 2023-04-04 | 1.1.0   | Arnold  | **[FIX]** Not all folders where reviewed when checking if a folder already existed
+| 2023-04-14 | 1.2.0   | Arnold  | **[ADD]** Made the script proxy aware
 
 ## ta-dmarc_setup.py 
 This use to be the `setup_handler.py` script.

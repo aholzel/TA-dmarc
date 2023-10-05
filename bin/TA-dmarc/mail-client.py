@@ -346,7 +346,7 @@ def pop3_mailbox():
                         # Save the attachement in the given directory
                         filename = part.get_filename()
                         if filename != None and (filename[-3:] == '.gz' or filename[-4:] == '.zip' or filename[-5:] == '.gzip'):
-                            script_logger.debug(f"Message id: {actual_email_id}, Attachment found, name: {filename}"")
+                            script_logger.debug(f"Message id: {actual_email_id}, Attachment found, name: {filename}")
                             # Replace the '!' for a '_' so is doesn't need to be escaped later on
                             filename = re.sub(r'(\!)', r'_', filename)
                         
