@@ -173,7 +173,7 @@ def imap_mailbox():
     response, data = connection.select(args.folder)
     if response == 'OK':
         num_of_msgs = data[0]
-        script_logger.info(f"There are {num_of_msgs0} messages in folder: {args.folder}")
+        script_logger.info(f"There are {num_of_msgs} messages in folder: {args.folder}")
     else:
         error = str(data[0])
         script_logger.critical(f"There was a error selecting the folder: {args.folder} the error was: {error}")
