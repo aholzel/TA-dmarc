@@ -247,7 +247,7 @@ def imap_mailbox():
             script_logger.warning(f"Response is NOT OK, response: {response}")
 
         # Check if there where to many mails to process at once, if so append 1 to the end of the msg_id_list
-        if msg_id_list[-1] < unseen_count:
+        if int.from_bytes(msg_id_list[-1], sys.byteorder) < unseen_count:
             msg_id_list.append(msg_id_list[-1]+1)
 
         count +=1
