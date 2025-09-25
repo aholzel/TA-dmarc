@@ -45,7 +45,7 @@ class Splunk_Info(object):
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.splunk_paths = self.give_splunk_paths(self.script_dir)
         
-        if app is not "-":
+        if app != "-":
             custom_conf_file = str(app.lower()) + ".conf"
         else:
             custom_conf_file = str(self.splunk_paths['app_name'].lower()) + ".conf"

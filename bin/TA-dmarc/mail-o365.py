@@ -480,7 +480,7 @@ try:
                                 script_logger.error(f"HTTP {mark_request.status_code} recieved. Error message: {json.loads(mark_request.content)['error']['message']}")
                     count+=1
 
-            script_logger.info(f"Processed {count} messages.")
+                script_logger.info(f"Processed {count} messages.")
         else:
             script_logger.error(f"No folders where found: {all_folders_data}")
     else:
