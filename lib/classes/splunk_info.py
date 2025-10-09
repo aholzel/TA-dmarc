@@ -26,7 +26,7 @@ limitations under the License.
 #                                               if no password was found
 # 2017-12-28    1.5         Arnold              made the Splunk_Info class more generic by using the app name as custom conf file name.
 # 2019-11-27    1.6.0       Arnold      [FIX]   typo in the get_credentials name
-#
+# 2025-10-09    1.6.1       Arnold      [MOD]   disabled some debug log
 ##################################################################
 import logging, logging.handlers
 import os
@@ -37,7 +37,7 @@ import splunklib.client as client
 import splunk.entity as entity
 
 __author__ = 'Arnold'
-__version__ = '1.5'
+__version__ = '1.6.1'
 __license__ = 'Apache License 2.0'
 
 class Splunk_Info(object):
@@ -77,19 +77,19 @@ class Splunk_Info(object):
             # passAuth = splunk-system-user
             # in the inputs [script://...] stanza 
             sessionKey = sys.stdin.readline().strip()
-            logger.debug("Reading sessionKey from stdin")
+            #logger.debug("Reading sessionKey from stdin")
             
             if len(sessionKey) == 0 or sessionKey == None:
                 self.logger.critical("Did not receive a session key from splunkd. Please enable passAuth in inputs.conf for this script.")
             else:
-                self.logger.debug("sessionKey: " + str(sessionKey))
+                #self.logger.debug("sessionKey: " + str(sessionKey))
                 self.connection = client.connect(token=sessionKey, app=app)
         elif given_sessionKey == "NA":
-            self.logger.debug("sessionKey is passed in with the class call, sessionKey: " + str(given_sessionKey))
+            #self.logger.debug("sessionKey is passed in with the class call, sessionKey: " + str(given_sessionKey))
             sessionKey = None
         else:
             sessionKey = given_sessionKey
-            self.logger.debug("sessionKey is passed in with the class call, sessionKey: " + str(given_sessionKey))
+            #self.logger.debug("sessionKey is passed in with the class call, sessionKey: " + str(given_sessionKey))
             self.connection = client.connect(token=sessionKey, app=app)
  
         if app in [None, '']:
@@ -104,7 +104,7 @@ class Splunk_Info(object):
             self.logger.critical("Did not receive a session key from splunkd. Please enable passAuth in inputs.conf for this script.")
             shc_status = "unknown"
         else:
-            self.logger.debug("sessionKey: " + str(self.sessionKey))
+            #self.logger.debug("sessionKey: " + str(self.sessionKey))
             
             # Get the Splunk info, this is mainly the info that is stored in the server.conf 
             # info() will return a json with (among other things) the roles this Splunk installation has:
@@ -128,7 +128,11 @@ class Splunk_Info(object):
         return shc_status
 
     def give_splunk_paths(self, script_location):
-        splunk_home_dir = os.environ['SPLUNK_HOME']
+        try:
+            splunk_home_dir = os.environ['SPLUNK_HOME']
+        except Exception:
+            splunk_home_dir = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + "../../../../../")
+
         splunk_apps_dir = os.path.normpath(splunk_home_dir + os.sep + "etc" + os.sep + "apps")
         app_name = script_location.replace(splunk_apps_dir + "/", "").split(os.sep,1)[0]
         app_root_dir = os.path.normpath(splunk_apps_dir + os.sep + app_name)
@@ -242,7 +246,7 @@ class Splunk_Info(object):
         try:
             # list all credentials available 
             entities = entity.getEntities(['admin', 'passwords'], namespace=app, owner='nobody', sessionKey=self.sessionKey)
-            self.logger.debug("entities: " + str(entities))
+            #self.logger.debug("entities: " + str(entities))
         except Exception:
             self.logger.exception("Could not get " + str(app) + " credentials from splunk.")
         
@@ -257,6 +261,7 @@ class Splunk_Info(object):
         
         if found == 0:
             password = "NO_PASSWORD_FOUND_FOR_THIS_USER"
+            self.logger.warning(f"No password found for user {username}")
             
         return password 
 

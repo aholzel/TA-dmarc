@@ -5,7 +5,7 @@ This file will contain the changes to the script files. The file is split up in 
 ## General app changes
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2025-09-25 | 5.1.2   | Arnold  | **[FIX]** Indent error in `mail-o365.py` <br />**[FIX]** Syntax warning in `splunk_info.py`
+| 2025-10-09 | 5.2.0   | Arnold  | **[FIX]** Unexpected http status error in `mail-o365.py` <br />**[MOD]** Updated the splunk SDK to v2.1.1 <br />**[MOD]** Disabled some debug log
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -26,7 +26,7 @@ This use to be the `dmarc_converter.py` script.
 ## mail-o365.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
 |:-----------|:--------|:--------|:--------------------------------------------------------------------------------------|
-| 2025-09-25 | 1.2.2   | Arnold  | **[FIX]** 
+| 2025-09-25 | 1.2.3   | Arnold  | **[FIX]** Unexpected http status error
 
 ## ta-dmarc_setup.py 
 This use to be the `setup_handler.py` script.
@@ -73,6 +73,7 @@ This use to be the `setup_handler.py` script.
 | 2023-04-05 | 5.0.3   | Arnold  | **[MOD]** Added `[trigger]` stanza to `app.conf` to prevent unnecessary restart after install
 | 2023-04-14 | 5.1.0   | Arnold  | **[ADD]** Proxy support for the o365 script.<br />**[MOD]** Setup page to add proxy config.
 | 2023-10-05 | 5.1.1   | Arnold  | **[FIX]** Proxy problems with the o365 script.<br />**[FIX]** Wrong double quote in `mail-client.py`
+| 2025-09-25 | 5.1.2   | Arnold  | **[FIX]** Indent error in `mail-o365.py` <br />**[FIX]** Syntax warning in `splunk_info.py`
 
 ## dmarc-parser.py
 | Date       | Version | Author  | **[Type]** Description                                                                |
@@ -157,6 +158,7 @@ This use to be the `setup_handler.py` script.
 | 2023-04-04 | 1.1.0   | Arnold  | **[FIX]** Not all folders where reviewed when checking if a folder already existed
 | 2023-04-14 | 1.2.0   | Arnold  | **[ADD]** Made the script proxy aware
 | 2023-10-05 | 1.2.1   | Arnold  | **[FIX]** Proxy problems
+| 2025-09-25 | 1.2.2   | Arnold  | **[FIX]** Indent error
 
 ## ta-dmarc_setup.py 
 This use to be the `setup_handler.py` script.

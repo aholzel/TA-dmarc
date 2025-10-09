@@ -47,7 +47,7 @@ import msal
 from classes import splunk_info as si
 from classes import custom_logger as c_logger
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __author__ = 'Arnold Holzel'
 __license__ = 'Apache License 2.0'
 
@@ -86,7 +86,7 @@ options.add_argument('-f', '--folder', help='mail folder from which the mail to 
 options.add_argument('-a', '--action', help='The action to take when a mail is processed; move/delete/mark_read', default='mark_read')
 options.add_argument('-m', '--move_to', help='The folder to move emails to the following variables can be used \
     [year] [month] [day] [ week] Example: Inbox/done/[year]/week_[week] will become Inbox/done/2023/week_03', default='Inbox/done/[year]/week_[week]')
-options.add_argument('--proxy', action='store_true', help='Use a proxy server to connect to the internet' )
+options.add_argument('--proxy', action='store_true', help='Use a proxy server to connect to the internet', default=False)
 options.add_argument('-x', '--proxy_server', help='The proxy server + port to use. IE: https://10.20.30.40:5060')
 options.add_argument('-y', '--proxy_user', help='The user to authenticate to the proxy to if needed', default='default_None')
 options.add_argument('-z', '--proxy_pwd', help='The password for the proxy user if needed', default='default_None')
@@ -150,6 +150,12 @@ if args.use_conf_file:
     move_to_folder = splunk_info.get_config(custom_conf_file, 'main', 'mailserver_moveto')
 
     proxy_use = splunk_info.get_config(custom_conf_file, 'main', 'proxy_use')
+    
+    if proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
+        proxy_use = True
+    else:
+        proxy_use = False
+
     proxy_server = splunk_info.get_config(custom_conf_file, 'main', 'proxy_server')
     proxy_username = splunk_info.get_config(custom_conf_file, 'main', 'proxy_username')
     proxy_pwd = splunk_info.get_credentials(proxy_username)
@@ -167,10 +173,11 @@ else:
         proxy_server = args.proxy_server
         proxy_username = args.proxy_user
         proxy_pwd = args.proxy_pwd
+    else:
+        proxy_use = False
 
-if proxy_use is True or proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
+if proxy_use is True:
     script_logger.debug(f"A proxy needs to be used to connect to internet. The following will be used: {proxy_server}")
-    proxy_use = True
     proxy_regex = re.search(r"(?:^([htps]*)(?=[:]+)(?:\:\/\/)|^)(.*)", proxy_server)
 
     if not proxy_regex.group(1):
@@ -476,8 +483,8 @@ try:
                             except Exception as exception:
                                 script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
-                            if mark_request.status_code != 201:
-                                script_logger.error(f"HTTP {mark_request.status_code} recieved. Error message: {json.loads(mark_request.content)['error']['message']}")
+                            if mark_request.status_code != 200 or mark_request.status_code != 201:
+                                script_logger.error(f"HTTP {mark_request.status_code} recieved. Error message: {json.loads(mark_request.content)}")
                     count+=1
 
                 script_logger.info(f"Processed {count} messages.")
