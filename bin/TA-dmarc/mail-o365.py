@@ -53,7 +53,7 @@ __license__ = 'Apache License 2.0'
 
 max_emails_per_fetch = 500
 allowed_mail_subjects = [
-                        'report domain', 
+                        'report domain',   
                         'dmarc aggregate report', 
                         'report_domain', 
                         '[dmarc report]', 
@@ -213,10 +213,11 @@ app = msal.ConfidentialClientApplication(
     client_credential=client_secret,
     authority=f'{LOGIN_URL}/{tenant_id}')
 
+
 def get_request(endpoint, token):
     """
     Perform a get request against the GRAPH API.
-    
+
     INPUT
     endpoint            | string    | The endpoint to talk to and get the info from
     token               | string    | The authentication token for the Graph api
@@ -225,23 +226,43 @@ def get_request(endpoint, token):
     value               | dict      | The JSON response from the request converted into a dict
     """
     if not token:
+        script_logger.error("No token provided to get_request, aborting call")
         return None
-    
-    headers = { 'Authorization': f'Bearer {token}' }
-    
-    try:
-        if proxy_use:
-            response = requests.get(endpoint, headers=headers, proxies=proxies)
-        else:
-            response = requests.get(endpoint, headers=headers)
-    except Exception as exception:
-        script_logger.exception(f"Connection error {type(exception).__name__}; ")
 
+    headers = {'Authorization': f'Bearer {token}'}
+    script_logger.debug(f"Calling Graph endpoint: {endpoint}")
+
+    try:
+        if proxy_use and proxies:
+            response = requests.get(endpoint, headers=headers, proxies=proxies, timeout=30)
+        else:
+            response = requests.get(endpoint, headers=headers, timeout=30)
+    except Exception as exception:
+        script_logger.exception(f"Connection error in get_request: {type(exception).__name__}: {exception}")
+        return None
 
     if response.status_code != 200:
+        script_logger.error(
+            f"Graph call failed: status={response.status_code}, "
+            f"reason={response.reason}, text={response.text[:500]}"
+        )
         return None
 
-    return json.loads(response.text)['value']
+    try:
+        data = json.loads(response.text)
+    except Exception as exception:
+        script_logger.exception(f"Failed to parse Graph JSON response: {exception}")
+        return None
+
+    if 'value' not in data:
+        script_logger.error(f"Graph response has no 'value' field: keys={list(data.keys())}")
+        return None
+
+    return data['value']
+
+
+
+
 
 def get_folder_id(folder_name, token, parent_folder_id=None):
     """
@@ -257,8 +278,8 @@ def get_folder_id(folder_name, token, parent_folder_id=None):
     """
     folder_id = None
 
-    parent_endpoint = f"{FOLDER_ENDPOINT}?includeHiddenFolders=true$top=1000"
-    child_endpoint = f"{FOLDER_ENDPOINT}{parent_folder_id}/childFolders?$top=1000"
+    parent_endpoint = f"{FOLDER_ENDPOINT}?includeHiddenFolders=true&$top=1000"
+    child_endpoint = f"{FOLDER_ENDPOINT}{parent_folder_id}/childFolders?&$top=1000"
 
     if '/' in folder_name:
         # look for a nested folder, get the first folder to look for
@@ -385,6 +406,7 @@ try:
         # get all the mail folders and search for the one we need
         all_folders_endpoint = f"{FOLDER_ENDPOINT}?includeHiddenFolders=true"
         all_folders_data = get_request(all_folders_endpoint, result['access_token'])
+        script_logger.debug(f"Graph folder response (raw): {all_folders_data}")
 
         if all_folders_data is not None:
             # succesfull connection, first find the id of the folder we are looking for
