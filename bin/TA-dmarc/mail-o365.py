@@ -151,7 +151,7 @@ if args.use_conf_file:
 
     proxy_use = splunk_info.get_config(custom_conf_file, 'main', 'proxy_use')
     
-    if proxy_use == 1 or proxy_use.lower() == 't' or proxy_use.lower() == 'true':
+    if str(proxy_use).lower() in ('1', 't', 'true', 'yes', 'on'):
         proxy_use = True
     else:
         proxy_use = False
